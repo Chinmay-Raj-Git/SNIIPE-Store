@@ -1,0 +1,280 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Product Detail — Admin{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-sm uppercase tracking-[0.2em] text-purple-300/80">Product</p>
+      <h1 id="productName" class="text-3xl font-bold mt-1">Loading...</h1>
+      <p id="productCategory" class="text-gray-400 text-sm mt-1"></p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="goBack()" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10">← Back</button>
+      <button id="saveBtn" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-semibold shadow-lg shadow-purple-500/20">Save Changes</button>
+      <button id="deleteBtn" class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded-lg">Delete Product</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-black/50 border border-white/10 rounded-2xl p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-3">
+          <label class="text-sm text-gray-300">Name</label>
+          <input id="fName" class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        </div>
+        <div class="space-y-3">
+          <label class="text-sm text-gray-300">Category</label>
+          <input id="fCategory" class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        </div>
+        <div class="space-y-3">
+          <label class="text-sm text-gray-300">Price (₹)</label>
+          <input id="fPrice" type="number" step="0.01" min="0" class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        </div>
+        <div class="space-y-3 md:col-span-2">
+          <label class="text-sm text-gray-300">Image URL</label>
+          <input id="fImage" class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        </div>
+        <div class="space-y-3 md:col-span-2">
+          <label class="text-sm text-gray-300">Description</label>
+          <textarea id="fDescription" rows="4" class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
+      <img id="productImage" src="/static/img/placeholder.webp" class="w-full h-56 object-cover rounded-xl border border-white/10">
+      <div>
+        <p class="text-sm text-gray-400">Preview</p>
+        <p class="text-lg font-semibold text-white mt-1" id="previewName"></p>
+        <p class="text-purple-300 font-bold" id="previewPrice"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-xl font-semibold">Variants</h2>
+        <p class="text-gray-400 text-sm">Manage size/color, stock and pricing</p>
+      </div>
+      <button onclick="openVariantModal()" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">+ Add Variant</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
+          <tr>
+            <th class="px-4 py-3">Color</th>
+            <th class="px-4 py-3">Size</th>
+            <th class="px-4 py-3">Stock</th>
+            <th class="px-4 py-3">Override Price</th>
+            <th class="px-4 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="variantsTable" class="divide-y divide-white/5">
+          <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading variants...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Variant Modal -->
+<div id="variantModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+  <div class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="variantModalTitle" class="text-xl font-bold">Add Variant</h3>
+      <button onclick="closeVariantModal()" class="text-gray-400 hover:text-white transition">✕</button>
+    </div>
+    <form id="variantForm" class="space-y-4">
+      <div>
+        <label class="text-sm text-gray-300">Color</label>
+        <input id="vColor" required class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Size</label>
+        <input id="vSize" required class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Stock</label>
+        <input id="vStock" type="number" min="0" required class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Price Override (₹)</label>
+        <input id="vPrice" type="number" step="0.01" min="0" class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none" placeholder="Leave blank to use base price">
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save Variant</button>
+        <button type="button" onclick="closeVariantModal()" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const productId = {{ product_id }};
+let product = null;
+let variants = [];
+let editingVariantId = null;
+
+function authHeaders() {
+  const token = localStorage.getItem("admin_token");
+  if (!token) {
+    window.location.href = "/admin/login";
+    return null;
+  }
+  return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+}
+
+function goBack() { window.location.href = "/admin/products"; }
+
+function setPreview() {
+  document.getElementById("productName").textContent = product?.name || "";
+  document.getElementById("productCategory").textContent = product?.category || "";
+  document.getElementById("productImage").src = product?.image_url || "/static/img/placeholder.webp";
+  document.getElementById("previewName").textContent = product?.name || "";
+  document.getElementById("previewPrice").textContent = product?.price ? `₹${product.price}` : "";
+  document.getElementById("fName").value = product?.name || "";
+  document.getElementById("fCategory").value = product?.category || "";
+  document.getElementById("fPrice").value = product?.price || 0;
+  document.getElementById("fImage").value = product?.image_url || "";
+  document.getElementById("fDescription").value = product?.description || "";
+}
+
+function renderVariants() {
+  const tbody = document.getElementById("variantsTable");
+  if (!variants.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No variants yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = variants.map(v => `
+    <tr class="hover:bg-white/5 transition">
+      <td class="px-4 py-3 text-white">${v.color}</td>
+      <td class="px-4 py-3 text-white">${v.size}</td>
+      <td class="px-4 py-3 text-gray-200">${v.stock}</td>
+      <td class="px-4 py-3 text-purple-300">${v.price_override ? '₹' + v.price_override : '—'}</td>
+      <td class="px-4 py-3 flex gap-2">
+        <button onclick="editVariant(${v.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
+        <button onclick="deleteVariant(${v.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+async function loadProduct() {
+  const headers = authHeaders();
+  if (!headers) return;
+  const res = await fetch(`/admin/api/products/${productId}`, { headers });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem("admin_token");
+      return window.location.href = "/admin/login";
+    }
+    document.body.innerHTML = "<div class='p-8 text-red-400'>Failed to load product.</div>";
+    return;
+  }
+  const data = await res.json();
+  product = data;
+  variants = data.variants || [];
+  setPreview();
+  renderVariants();
+}
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const headers = authHeaders();
+  if (!headers) return;
+  const body = {
+    name: document.getElementById("fName").value,
+    category: document.getElementById("fCategory").value,
+    price: parseFloat(document.getElementById("fPrice").value || 0),
+    stock: parseInt(document.getElementById("fStock").value || 0, 10),
+    image_url: document.getElementById("fImage").value,
+    description: document.getElementById("fDescription").value
+  };
+  const res = await fetch(`/admin/api/products/${productId}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "Failed to update product");
+    return;
+  }
+  await loadProduct();
+  alert("Product updated");
+});
+
+document.getElementById("deleteBtn").addEventListener("click", async () => {
+  const headers = authHeaders();
+  if (!headers) return;
+  if (!confirm("Delete this product?")) return;
+  const res = await fetch(`/admin/api/products/${productId}`, { method: "DELETE", headers });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "Failed to delete product");
+    return;
+  }
+  window.location.href = "/admin/products";
+});
+
+function openVariantModal() {
+  editingVariantId = null;
+  document.getElementById("variantModalTitle").textContent = "Add Variant";
+  document.getElementById("variantForm").reset();
+  document.getElementById("variantModal").classList.remove("hidden");
+}
+function closeVariantModal() { document.getElementById("variantModal").classList.add("hidden"); }
+
+function editVariant(id) {
+  const v = variants.find(x => x.id === id);
+  if (!v) return;
+  editingVariantId = id;
+  document.getElementById("variantModalTitle").textContent = "Edit Variant";
+  document.getElementById("vColor").value = v.color || "";
+  document.getElementById("vSize").value = v.size || "";
+  document.getElementById("vStock").value = v.stock || 0;
+  document.getElementById("vPrice").value = v.price_override ?? "";
+  document.getElementById("variantModal").classList.remove("hidden");
+}
+
+document.getElementById("variantForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const headers = authHeaders();
+  if (!headers) return;
+  const body = {
+    color: document.getElementById("vColor").value,
+    size: document.getElementById("vSize").value,
+    stock: parseInt(document.getElementById("vStock").value || 0, 10),
+    price_override: document.getElementById("vPrice").value ? parseFloat(document.getElementById("vPrice").value) : null
+  };
+  const res = await fetch(editingVariantId ? `/admin/variants/${editingVariantId}` : `/admin/products/${productId}/variants`, {
+    method: editingVariantId ? "PUT" : "POST",
+    headers,
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "Failed to save variant");
+    return;
+  }
+  closeVariantModal();
+  await loadProduct();
+});
+
+async function deleteVariant(id) {
+  const headers = authHeaders();
+  if (!headers) return;
+  if (!confirm("Delete this variant?")) return;
+  const res = await fetch(`/admin/api/variants/${id}`, { method: "DELETE", headers });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "Failed to delete variant");
+    return;
+  }
+  await loadProduct();
+}
+
+document.addEventListener("DOMContentLoaded", loadProduct);
+</script>
+{% endblock %}
+

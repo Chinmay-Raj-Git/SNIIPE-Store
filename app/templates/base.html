@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SNIPE{% endblock %}</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Theme -->
+    <style>
+        body {
+            background-color: #0c0c0c;
+            color: white;
+        }
+
+        .nav-link:hover {
+            color: #a855f7;
+            /* Purple */
+        }
+
+        .active-nav {
+            color: #a855f7 !important;
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="flex justify-center w-full border-b border-gray-800 bg-black sticky top-0 z-30">
+        <nav class="relative w-full max-w-7xl px-6 py-4 grid grid-cols-3 items-center">
+
+            <!-- LEFT → SNIPE Logo -->
+            <a class="flex justify-center" href="/">
+                <img src="{{ url_for('static', filename='images/sniipe.png') }}" alt="SNIIPE" class="h-8 w-auto">
+            </a>
+
+            <!-- CENTER → Bird Icon -->
+            <div class="flex justify-center"  href="/">
+                <img src="{{ url_for('static', filename='images/bird.png') }}" alt="SNIIPE Logo"
+                    class="h-16 w-auto opacity-90">
+            </div>
+
+            <!-- RIGHT → Navigation -->
+            <div class="flex justify-center">
+
+                <div class="hidden lg:flex justify-end items-center gap-8 text-sm uppercase tracking-wide">
+                    <a href="/home" class="nav-link hover:text-purple-400">Catalog</a>
+                    <a href="#" class="nav-link hover:text-purple-400">Collections</a>
+                    <a href="/profile" id="nav-profile" class="nav-link hover:text-purple-400">Profile</a>
+                    <a href="/cart" id="nav-cart" class="nav-link hover:text-purple-400">Cart</a>
+                    <button id="logoutBtn" class="text-gray-400 hover:text-purple-500">
+                        Logout
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="menuBtn" class="lg:hidden text-white focus:outline-none text-2xl ml-4">
+                    ☰
+                </button>
+            </div>
+
+        </nav>
+
+        <!-- MOBILE MENU -->
+        <div id="mobileMenu"
+            class="absolute left-0 right-0 top-full hidden bg-black border-t border-gray-900 px-6 py-4 lg:hidden shadow-2xl">
+            <a href="/home" class="block py-2 nav-link">Shop</a>
+            <a href="/collections" class="block py-2 nav-link">Collections</a>
+            <a href="/profile" id="nav-profile-mobile" class="block py-2 nav-link">Profile</a>
+            <a href="/cart" id="nav-cart-mobile" class="block py-2 nav-link">Cart</a>
+
+            <button id="logoutBtnMobile" class="mt-4 text-gray-400 hover:text-purple-500">
+                Logout
+            </button>
+        </div>
+    </header>
+
+
+    <!-- MAIN CONTENT BLOCK -->
+    <main class="min-h-screen">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-20 border-t border-gray-800 py-8 text-center text-gray-500 text-sm">
+        <p><a href="/admin">SNIPE © {{ 2025 }} </a> — All Rights Reserved</p>
+        <p class="mt-2">Made with ❤️ using Flask + Tailwind</p>
+    </footer>
+
+
+    <!-- GLOBAL JS -->
+    <script>
+        // Logout logic
+        document.getElementById("logoutBtn")?.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            window.location.href = "/login-page";
+        });
+
+        document.getElementById("logoutBtnMobile")?.addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            window.location.href = "/login-page";
+        });
+
+        // helper: validate token and then navigate to protected route
+        async function goProtected(path) {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                window.location.href = "/login-page";
+                return;
+            }
+
+            // Validate token by making a lightweight authenticated request
+            try {
+                const res = await fetch("/profile/me", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                if (!res.ok) {
+                    // Token is invalid or expired
+                    if (res.status === 401) {
+                        localStorage.removeItem("access_token");
+                        window.location.href = "/login-page";
+                        return;
+                    }
+                }
+
+                // Token is valid, proceed to protected page
+                window.location.href = path;
+            } catch (error) {
+                // Network error or other issue
+                console.error("Token validation failed:", error);
+                localStorage.removeItem("access_token");
+                window.location.href = "/login-page";
+            }
+        }
+
+        // desktop nav
+        document.getElementById("nav-profile")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            goProtected("/profile");
+        });
+
+        document.getElementById("nav-cart")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            goProtected("/cart-page");
+        });
+
+        // mobile nav
+        document.getElementById("nav-profile-mobile")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            goProtected("/profile");
+        });
+
+        document.getElementById("nav-cart-mobile")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            goProtected("/cart-page");
+        });
+
+        // Mobile menu toggle
+        const menuBtn = document.getElementById("menuBtn");
+        const mobileMenu = document.getElementById("mobileMenu");
+
+        menuBtn?.addEventListener("click", () => {
+            mobileMenu.classList.toggle("hidden");
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+
+</html>

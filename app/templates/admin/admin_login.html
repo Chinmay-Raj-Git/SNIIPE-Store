@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — SNIPE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0c0c0c;
+      color: white;
+    }
+  </style>
+</head>
+
+<body class="font-sans flex items-center justify-center min-h-screen px-6">
+  <div class="w-full max-w-md bg-black/50 border border-white/10 backdrop-blur-xl p-10 rounded-3xl shadow-2xl">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-600/20 to-purple-800/20 border border-purple-500/30 mb-4">
+        <span class="text-3xl">🔐</span>
+      </div>
+      <h1 class="text-3xl font-bold mb-2">Admin Access</h1>
+      <p class="text-gray-400 text-sm">Enter your credentials to continue</p>
+    </div>
+
+    <form id="adminLoginForm" class="space-y-5">
+      <div class="space-y-2">
+
+        <label class="text-sm text-gray-300 uppercase tracking-wide">Email</label>
+        <div class="relative">
+          <input id="email" type="email" required autocomplete="email"
+                 class="w-full p-3 pl-12 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none transition"
+                 placeholder="Enter admin email">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">📧</span>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm text-gray-300 uppercase tracking-wide">Password</label>
+        <div class="relative">
+          <input id="password" type="password" required
+                 class="w-full p-3 pl-12 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none transition"
+                 placeholder="Enter password">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔒</span>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">
+        Login
+      </button>
+    </form>
+
+    <p id="msg" class="mt-4 text-center text-sm"></p>
+  </div>
+
+  <script>
+    document.getElementById("adminLoginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const msgEl = document.getElementById("msg");
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      const originalText = submitBtn.textContent;
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Logging in...";
+      msgEl.textContent = "";
+      msgEl.classList.remove("text-red-400", "text-green-400");
+
+      try {
+        const res = await fetch("/admin/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          localStorage.setItem("admin_token", data.access_token);
+          localStorage.setItem("admin_email", data.email);
+          msgEl.textContent = "Login successful! Redirecting...";
+          msgEl.classList.add("text-green-400");
+          setTimeout(() => {
+            window.location.href = "/admin";
+          }, 500);
+        } else {
+          msgEl.textContent = data.error || "Invalid credentials";
+          msgEl.classList.add("text-red-400");
+        }
+      } catch (error) {
+        msgEl.textContent = "Network error. Please try again.";
+        msgEl.classList.add("text-red-400");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+  </script>
+</body>
+</html>

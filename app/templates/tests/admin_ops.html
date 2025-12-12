@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Operations</h2>
+
+<section>
+  <h3>Add Product</h3>
+  <form id="productForm">
+    <input type="text" name="name" placeholder="Product Name" required>
+    <input type="text" name="category" placeholder="Category">
+    <textarea name="description" placeholder="Description"></textarea>
+    <input type="number" name="price" placeholder="Price" required>
+    <input type="url" name="image_url" placeholder="Image URL">
+    <button type="submit">Add Product</button>
+  </form>
+  <p id="productMsg"></p>
+</section>
+
+<hr>
+
+<section>
+  <h3>Add Variant</h3>
+  <form id="variantForm">
+    <input type="number" name="product_id" placeholder="Product ID">
+    <input type="text" name="product_name" placeholder="Product Name">
+    <input type="text" name="size" placeholder="Size">
+    <input type="text" name="color" placeholder="Color">
+    <input type="number" name="stock" placeholder="Stock">
+    <button type="submit">Add Variant</button>
+  </form>
+  <p id="variantMsg"></p>
+</section>
+
+<hr>
+
+<section>
+  <h3>View Users</h3>
+  <button id="loadUsers">Show Users</button>
+  <ul id="usersList"></ul>
+</section>
+
+<hr>
+
+<section>
+  <h3>View Orders</h3>
+  <button id="loadOrders">Show Orders</button>
+  <ul id="ordersList"></ul>
+</section>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+
+    // Add Product
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      const res = await fetch('/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      document.getElementById('productMsg').textContent = result.message || result.error;
+    });
+
+    // Add Variant
+    document.getElementById('variantForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      const res = await fetch(`/products/${formData.get("product_name")}/variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      document.getElementById('variantMsg').textContent = result.message || result.error;
+    });
+
+    // View Users
+    document.getElementById('loadUsers').addEventListener('click', async () => {
+      const res = await fetch('/view_users');
+      const result = await res.json();
+
+      const list = document.getElementById('usersList');
+      list.innerHTML = '';
+
+      if (result.users && result.users.length) {
+        result.users.forEach(u => {
+          const li = document.createElement('li');
+          li.textContent = `${u.email} (${u.id})`;
+          list.appendChild(li);
+        });
+      } else {
+        list.innerHTML = '<li>No users found.</li>';
+      }
+    });
+
+    // View Orders
+    document.getElementById('loadOrders').addEventListener('click', async () => {
+      const res = await fetch('/admin/orders');
+      const result = await res.json();
+
+      const list = document.getElementById('ordersList');
+      list.innerHTML = '';
+
+      if (result.orders && result.orders.length) {
+        result.orders.forEach(o => {
+          const li = document.createElement('li');
+          li.textContent = `Order #${o.id} — ${o.user_email} — ₹${o.total_amount} (${o.status})`;
+          list.appendChild(li);
+        });
+      } else {
+        list.innerHTML = '<li>No orders found.</li>';
+      }
+    });
+
+
+  });
+</script>
+{% endblock %}

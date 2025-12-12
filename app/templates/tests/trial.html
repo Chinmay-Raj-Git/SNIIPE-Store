@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #121212;
+        color: #fff;
+    }
+</style>
+
+<body>
+    <button onclick="getProducts()">Show Products</button>
+    <div id="products">
+
+    </div>
+    <!-- <div id="product-variants">
+
+    </div> -->
+    <script>
+        async function getProducts() {
+            const res = await fetch('/products');
+            const data = await res.json();
+            const products = data.map(product => `<div>
+                                                    =>${product.id} - ${product.name} - ${product.description} - ${product.price} - ${product.stock} - ${product.category} - ${product.image_url}
+                                                </div>
+                                                <button onclick="getProductVariant(${product.id})">See All Variants</button>
+                                                <div id="product-${product.id}"></div>
+                                                `).join('');
+            console.log(products);
+            document.getElementById('products').innerHTML = products;
+        }
+
+        async function getProductVariant(id) {
+            const res = await fetch(`/products/${id}/variants`);
+            const data = await res.json();
+            const variants = data.map(variant => `<p>${variant.id} - ${variant.color} - ${variant.size} - ${variant.stock}</p>`).join('');
+            document.getElementById(`product-${id}`).innerHTML = variants
+        }
+    </script>
+
+    <hr>
+
+    <form id="addProductForm">
+        <input type="text" id="id" placeholder="ID">
+        <input type="text" id="name" placeholder="Name">
+        <input type="text" id="description" placeholder="Description">
+        <input type="text" id="price" placeholder="Price">
+        <input type="text" id="stock" placeholder="Stock">
+        <input type="text" id="category" placeholder="Category">
+        <input type="text" id="image_url" placeholder="Image URL">
+        <button type="submit">Add Product</button>
+    </form>
+    <form id="addProductVariantForm">
+        <input type="text" id="var-id" placeholder="ID">
+        <input type="text" id="prod-id" placeholder="Product ID">
+        <input type="text" id="var-color" placeholder="Color">
+        <input type="text" id="var-size" placeholder="Size">
+        <input type="text" id="var-stock" placeholder="Stock">
+        <input type="text" id="var-price" placeholder="Extra Price (if any)">
+        <button type="submit">Add Product Variant</button>
+    </form>
+    <script>
+        document.getElementById('addProductForm').addEventListener('submit', async function (e) {
+            e.preventDefault(); // stop form from reloading page
+            const res = await fetch('/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: document.getElementById('id').value,
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value,
+                    price: document.getElementById('price').value,
+                    stock: document.getElementById('stock').value,
+                    category: document.getElementById('category').value,
+                    image_url: document.getElementById('image_url').value
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+        });
+
+        document.getElementById('addProductVariantForm').addEventListener('submit', async function (e) {
+            e.preventDefault(); // stop form from reloading page
+            const prod_id = document.getElementById('prod-id').value;
+            const res = await fetch(`/products/${prod_id}/variants`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: document.getElementById('var-id').value,
+                    product_id: document.getElementById('prod-id').value,
+                    color: document.getElementById('var-color').value,
+                    size: document.getElementById('var-size').value,
+                    stock: document.getElementById('var-stock').value,
+                    price_override: null,
+                    image_url: null
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+        });
+    </script>
+
+    <hr>
+
+
+</body>
+
+</html>

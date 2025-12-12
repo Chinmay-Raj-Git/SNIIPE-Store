@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sniipe Store – Auth Test</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h2 {
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 4px;
+    }
+    .section {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+    }
+    input {
+      width: 95%;
+      padding: 8px;
+      margin: 6px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+    button:hover { background: #0056b3; }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sniipe Store – Trial Auth Page</h1>
+
+  <div class="section" id="registerSection">
+    <h2>Register</h2>
+    <input type="text" id="regName" placeholder="Name" />
+    <input type="email" id="regEmail" placeholder="Email" />
+    <input type="password" id="regPassword" placeholder="Password" />
+    <button onclick="register()">Register</button>
+    <pre id="registerOutput"></pre>
+  </div>
+
+  <div class="section" id="loginSection">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <pre id="loginOutput"></pre>
+  </div>
+
+  <div class="section" id="profileSection" style="display:none;">
+    <h2>Profile</h2>
+    <input type="text" id="profileId" placeholder="User ID (UUID)" />
+    <button onclick="fetchProfile()">Fetch Profile</button>
+    <br><br>
+    <input type="text" id="profileName" placeholder="New Name (for update)" />
+    <button onclick="updateProfile()">Update Name</button>
+    <pre id="profileOutput"></pre>
+  </div>
+
+  <script>
+    const BASE_URL = "http://127.0.0.1:5000";
+    let accessToken = "";
+
+    async function register() {
+      const data = {
+        name: document.getElementById("regName").value,
+        email: document.getElementById("regEmail").value,
+        password: document.getElementById("regPassword").value
+      };
+
+      const res = await fetch(`${BASE_URL}/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      document.getElementById("registerOutput").textContent = JSON.stringify(json, null, 2);
+    }
+
+    async function login() {
+      const data = {
+        email: document.getElementById("loginEmail").value,
+        password: document.getElementById("loginPassword").value
+      };
+
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      document.getElementById("loginOutput").textContent = JSON.stringify(json, null, 2);
+
+      if (json.access_token) {
+        accessToken = json.access_token;
+        document.getElementById("profileSection").style.display = "block";
+        alert("Login successful! Token stored.");
+      }
+    }
+
+    async function fetchProfile() {
+      const id = document.getElementById("profileId").value;
+      const res = await fetch(`${BASE_URL}/profile/${id}`, {
+        headers: {"Authorization": `Bearer ${accessToken}`}
+      });
+      const json = await res.json();
+      document.getElementById("profileOutput").textContent = JSON.stringify(json, null, 2);
+    }
+
+    async function updateProfile() {
+      const id = document.getElementById("profileId").value;
+      const data = { name: document.getElementById("profileName").value };
+      const res = await fetch(`${BASE_URL}/profile/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      document.getElementById("profileOutput").textContent = JSON.stringify(json, null, 2);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-10 px-6 text-white">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+        <!-- LEFT SIDE: IMAGES -->
+        <div>
+            <!-- MAIN IMAGE -->
+            <img id="mainImage" src="{{ product.image_url }}" alt="{{ product.name }}"
+                class="w-full h-[500px] object-cover rounded-lg shadow-lg transition duration-300 hover:scale-105">
+
+            <!-- THUMBNAILS -->
+            <div class="flex gap-3 mt-4">
+                <!-- Placeholder thumbnails (future support) -->
+                {% for i in range(4) %}
+                <div class="w-20 h-20 bg-gray-800 rounded-md flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-purple-500 thumbnail-placeholder"
+                    onclick="swapImage('{{ product.image_url }}')">
+                    <span class="text-xs text-gray-400">Preview</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: PRODUCT INFO -->
+        <div class="bg-black/30 border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-4xl font-bold">{{ product.name }}</h1>
+                    <p class="text-gray-400 uppercase tracking-widest mt-1">{{ product.category }}</p>
+                </div>
+                <span
+                    class="px-3 py-1 rounded-full text-sm bg-purple-600/20 border border-purple-500/30 text-purple-200">In-store</span>
+            </div>
+
+            <p class="text-3xl font-semibold mt-4 text-purple-300">₹{{ product.price }}</p>
+
+            {% if product.description %}
+            <p class="mt-4 text-gray-300 leading-relaxed">{{ product.description }}</p>
+            {% endif %}
+
+            <!-- COLOR SELECTOR -->
+            <div class="mt-6">
+                <p class="uppercase text-sm text-gray-400">Color</p>
+                <div id="colorOptions" class="flex flex-wrap gap-3 mt-2">
+                    {% for c in colors %}
+                    <button onclick="selectColor('{{ c }}')" id="color-{{ c }}"
+                        class="px-4 py-2 border border-white/10 rounded-xl bg-black/40 hover:border-purple-500 transition">
+                        {{ c }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- SIZE SELECTOR -->
+            <div class="mt-6">
+                <p class="uppercase text-sm text-gray-400">Size</p>
+                <div id="sizeOptions" class="flex flex-wrap gap-3 mt-2">
+                    {% for s in sizes %}
+                    <button onclick="selectSize('{{ s }}')" id="size-{{ s }}"
+                        class="px-4 py-2 border border-white/10 rounded-xl bg-black/40 hover:border-purple-500 transition">
+                        {{ s }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- AVAILABILITY + QTY -->
+            <div class="mt-6 flex flex-col gap-3">
+                <div class="flex items-center gap-3">
+                    <span id="variantStatus"
+                        class="text-sm px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">Select
+                        a color and size</span>
+                    <span id="variantPrice" class="text-sm text-purple-300"></span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span class="text-sm text-gray-300">Quantity</span>
+                    <div class="inline-flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden">
+                        <button type="button" onclick="changeQty(-1)"
+                            class="px-3 py-2 text-lg hover:bg-white/5">-</button>
+                        <input id="quantityInput" type="number" min="1" value="1"
+                            class="w-16 text-center bg-transparent border-0 focus:ring-0 focus:outline-none text-white">
+                        <button type="button" onclick="changeQty(1)"
+                            class="px-3 py-2 text-lg hover:bg-white/5">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <p id="actionMessage" class="text-lg text-purple-400 mt-2"></p>
+
+            <!-- BUTTONS -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                <button id="addToCartBtn" onclick="addToCart()"
+                    class="flex-1 border border-purple-500 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    ADD TO CART
+                </button>
+
+                <button id="buyNowBtn" onclick="buyNow()"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    BUY NOW
+                </button>
+            </div>
+
+            <!-- SIZE CHART -->
+            <details class="mt-8 bg-gray-900/60 border border-white/5 p-4 rounded-lg">
+                <summary class="cursor-pointer text-lg font-semibold">Size Chart</summary>
+                <p class="mt-3 text-gray-300">Add your size chart here.</p>
+            </details>
+
+        </div>
+    </div>
+
+    <!-- SIMILAR PRODUCTS -->
+    <h2 class="text-2xl font-bold mt-16 mb-4">Similar Products</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {% if similar %}
+        {% for item in similar %}
+        <a href="/product/{{ item.id }}"
+            class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
+            <div class="overflow-hidden">
+                <img src="{{ item.image_url or '/static/img/placeholder.webp' }}" alt="{{ item.name }}"
+                    class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+            </div>
+            <div class="p-4">
+                <h3 class="text-lg font-semibold">{{ item.name }}</h3>
+                <p class="text-gray-400">{{ item.category or 'Clothing' }}</p>
+                <p class="mt-2 text-purple-400 font-bold">₹{{ item.price }}</p>
+            </div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <p class="text-gray-400">No similar products found right now.</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- JS -->
+<script>
+    let selectedColor = null;
+    let selectedSize = null;
+    let selectedVariant = null;
+
+    const variantData = JSON.parse('{{ variants | tojson | safe }}');
+    const basePrice = Number('{{ product.price | tojson | safe }}');
+    console.log("Variant Data:", variantData);
+
+    const statusEl = document.getElementById("variantStatus");
+    const priceEl = document.getElementById("variantPrice");
+    const qtyInput = document.getElementById("quantityInput");
+    const actionMessage = document.getElementById("actionMessage");
+    const addBtn = document.getElementById("addToCartBtn");
+    const buyBtn = document.getElementById("buyNowBtn");
+
+    // Swap main image
+    function swapImage(url) {
+        document.getElementById("mainImage").src = url;
+    }
+
+    // Select color
+    function selectColor(color) {
+        selectedColor = color;
+
+        document.querySelectorAll("[id^='color-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+        document.getElementById("color-" + color).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+        updateVariantState();
+    }
+
+    // Select size
+    function selectSize(size) {
+        selectedSize = size;
+
+        document.querySelectorAll("[id^='size-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+        document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+        updateVariantState();
+    }
+
+    function findVariant() {
+        for (let v of variantData) {
+            if (v.color === selectedColor && v.size === selectedSize) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    function updateVariantState() {
+        selectedVariant = findVariant();
+        actionMessage.innerText = "";
+
+        if (!selectedVariant) {
+            if (selectedColor == null || selectedSize == null) {
+                statusEl.innerText = "Select a color and size";
+                statusEl.classList.remove("text-green-300", "text-red-300");
+                statusEl.classList.add("text-gray-300");
+                priceEl.innerText = "";
+                addBtn.disabled = true;
+                buyBtn.disabled = true;
+                return;
+            }
+            else {
+                statusEl.innerText = "Variant not available";
+                statusEl.classList.remove("text-green-300");
+                statusEl.classList.add("text-red-300");
+                addBtn.disabled = true;
+                buyBtn.disabled = true;
+                return;
+            }
+        }
+
+        // const price = selectedVariant.price_override ?? basePrice;
+        // priceEl.innerText = `₹${price}`;
+
+        if (selectedVariant.stock <= 0) {
+            statusEl.innerText = "Variant is out of stock";
+            statusEl.classList.remove("text-green-300");
+            statusEl.classList.add("text-red-300");
+            addBtn.disabled = true;
+            buyBtn.disabled = true;
+        } else {
+            statusEl.innerText = `In stock: ${selectedVariant.stock}`;
+            statusEl.classList.remove("text-red-300");
+            statusEl.classList.add("text-green-300");
+            addBtn.disabled = false;
+            buyBtn.disabled = false;
+            clampQuantity(selectedVariant.stock);
+        }
+    }
+
+    function clampQuantity(maxQty) {
+        const current = parseInt(qtyInput.value || "1", 10);
+        if (current < 1) qtyInput.value = 1;
+        else if (maxQty && current > maxQty) qtyInput.value = maxQty;
+    }
+
+    function changeQty(delta) {
+        let current = parseInt(qtyInput.value || "1", 10);
+        current += delta;
+        if (current < 1) current = 1;
+        if (selectedVariant && selectedVariant.stock > 0) {
+            current = Math.min(current, selectedVariant.stock);
+        }
+        qtyInput.value = current;
+    }
+
+    async function addToCart() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return alert("Please login first!");
+
+        const variant = findVariant();
+
+        if (!variant) {
+            actionMessage.innerText = "Please select a color and size.";
+            return;
+        }
+
+        if (variant.stock <= 0) {
+            actionMessage.innerText = "Selected variant is out of stock.";
+            return;
+        }
+
+        const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
+
+        if (quantity <= 0) {
+            actionMessage.innerText = "Quantity is invalid.";
+            return;
+        }
+
+        if (quantity > variant.stock) {
+            actionMessage.innerText = "Not enough stock.";
+            return;
+        }
+
+        try {
+            const res = await fetch("/cart/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    product_name: "{{ product.name }}",
+                    variant_id: variant.id,
+                    quantity: quantity
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                // Handle error responses
+                if (res.status === 401) {
+                    actionMessage.innerText = "Session expired. Please login again.";
+                    actionMessage.classList.remove("text-purple-400");
+                    actionMessage.classList.add("text-red-400");
+                    // Clear invalid token and redirect after a delay
+                    setTimeout(() => {
+                        localStorage.removeItem("access_token");
+                        window.location.href = "/login-page";
+                    }, 2000);
+                } else {
+                    actionMessage.innerText = data.error || "Failed to add item to cart.";
+                    actionMessage.classList.remove("text-purple-400");
+                    actionMessage.classList.add("text-red-400");
+                }
+                return;
+            }
+
+            // Success case
+            actionMessage.innerText = data.message || "Added " + quantity + " item(s) to cart.";
+            actionMessage.classList.remove("text-red-400");
+            actionMessage.classList.add("text-purple-400");
+        } catch (error) {
+            actionMessage.innerText = "Network error. Please try again.";
+            actionMessage.classList.remove("text-purple-400");
+            actionMessage.classList.add("text-red-400");
+        }
+    }
+
+    function buyNow() {
+        if (buyBtn.disabled) {
+            actionMessage.innerText = "Select an available variant first.";
+            return;
+        }
+        alert("Razorpay integration coming next...");
+    }
+</script>
+
+{% endblock %}
