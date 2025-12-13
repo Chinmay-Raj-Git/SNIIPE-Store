@@ -315,16 +315,16 @@ def login_user():
     data = request.json
     email = data.get("email")
     password = data.get("password")
-
-    supabase = get_supabase()
-    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-    if res.session:
-        return jsonify({
-            "message": "Login successful",
-            "access_token": res.session.access_token
-        })
-    else:
-        return jsonify({"error": "Invalid credentials"}), 401
+    try:
+        supabase = get_supabase()
+        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        if res.session:
+            return jsonify({
+                "message": "Login successful",
+                "access_token": res.session.access_token
+            })
+    except Exception as e:
+        return jsonify({"error": "Invalid Credentials"}), 401
 
 # ----------------------------------------------------------
 # --END OF USER AUTH-
