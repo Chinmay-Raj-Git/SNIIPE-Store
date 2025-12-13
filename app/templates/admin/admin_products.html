@@ -182,7 +182,6 @@ document.getElementById("productForm").addEventListener("submit", async (e) => {
     name: document.getElementById("pName").value,
     category: document.getElementById("pCategory").value,
     price: parseFloat(document.getElementById("pPrice").value || 0),
-    stock: parseInt(document.getElementById("pStock").value || 0, 10),
     image_url: document.getElementById("pImage").value,
     description: document.getElementById("pDescription").value
   };

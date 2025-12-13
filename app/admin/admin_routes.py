@@ -102,7 +102,6 @@ def admin_get_products():
             "name": p.name,
             "description": p.description,
             "price": float(p.price),
-            "stock": p.stock,
             "category": p.category,
             "image_url": p.image_url
         } for p in products])
@@ -121,7 +120,6 @@ def admin_get_product(id):
             "name": product.name,
             "description": product.description,
             "price": float(product.price),
-            "stock": product.stock,
             "category": product.category,
             "image_url": product.image_url,
             "variants": [{
@@ -150,7 +148,6 @@ def admin_create_product():
             name=data.get("name"),
             description=data.get("description"),
             price=data.get("price"),
-            stock=data.get("stock", 0),
             category=data.get("category"),
             image_url=data.get("image_url")
         )
@@ -177,8 +174,6 @@ def admin_update_product(id):
             product.description = data.get("description")
         if data.get("price") is not None:
             product.price = data.get("price")
-        if data.get("stock") is not None:
-            product.stock = data.get("stock")
         if data.get("category") is not None:
             product.category = data.get("category")
         if data.get("image_url") is not None:

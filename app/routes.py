@@ -26,7 +26,6 @@ def get_products():
             "name": p.name,
             "description": p.description,
             "price": float(p.price),
-            "stock": p.stock,
             "category": p.category,
             "image_url": p.image_url
         }
@@ -89,7 +88,6 @@ def add_product():
         name=data.get("name"),
         description=data.get("description"),
         price=data.get("price"),
-        stock=data.get("stock", 0),
         category=data.get("category"),
         image_url=data.get("image_url")
     )
@@ -109,7 +107,6 @@ def update_product(product_id):
     product.name = data.get("name", product.name)
     product.description = data.get("description", product.description)
     product.price = data.get("price", product.price)
-    product.stock = data.get("stock", product.stock)
     product.category = data.get("category", product.category)
     product.image_url = data.get("image_url", product.image_url)
 
