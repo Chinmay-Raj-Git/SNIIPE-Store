@@ -161,6 +161,49 @@ def admin_create_product():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/products/<int:id>/duplicate", methods=["POST"])
+@require_admin
+def duplicate_product(id):
+    try:
+        # Product Duplication
+        product = Product.query.get_or_404(id)
+        
+        new_product = Product(
+            name=f"{product.name} (Copy)",
+            description=product.description,
+            price=product.price,
+            category=product.category,
+            image_url=product.image_url
+        )
+        db.session.add(new_product)
+        db.session.flush()  # Get new product ID
+
+        # Variant Duplication
+        variants = Product_Variants.query.filter_by(product_id=product.id).all()
+        for v in variants:
+            new_variant = Product_Variants(
+                product_id=new_product.id,
+                color=v.color,
+                size=v.size,
+                stock=v.stock,
+                price_override=v.price_override,
+                image_url=v.image_url
+            )
+            db.session.add(new_variant)
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Product duplicated successfully",
+            "new_product_id": new_product.id
+        })
+        
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/products/<int:id>", methods=["PUT"])
 @require_admin
 def admin_update_product(id):

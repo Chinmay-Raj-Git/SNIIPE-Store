@@ -9,11 +9,15 @@
       <p class="text-gray-400 text-sm mt-1">Manage catalog, filter and quick edit</p>
     </div>
     <div class="flex items-center gap-3">
-      <input id="searchInput" type="text" placeholder="Search products..." class="px-4 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500 w-56">
-      <select id="categoryFilter" class="px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500">
+      <input id="searchInput" type="text" placeholder="Search products..."
+        class="px-4 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500 w-56">
+      <select id="categoryFilter"
+        class="px-3 py-2 bg-black/50 border border-white/10 rounded-lg focus:outline-none focus:border-purple-500">
         <option value="">All Categories</option>
       </select>
-      <button id="addBtn" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-semibold shadow-lg shadow-purple-500/20">+ Add Product</button>
+      <button id="addBtn"
+        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-semibold shadow-lg shadow-purple-500/20">+
+        Add Product</button>
     </div>
   </div>
 
@@ -49,170 +53,197 @@
     <form id="productForm" class="space-y-4">
       <div>
         <label class="text-sm text-gray-300">Name</label>
-        <input id="pName" required class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        <input id="pName" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
         <label class="text-sm text-gray-300">Category</label>
-        <input id="pCategory" class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        <input id="pCategory"
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
         <label class="text-sm text-gray-300">Price (₹)</label>
-        <input id="pPrice" type="number" step="0.01" min="0" required class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        <input id="pPrice" type="number" step="0.01" min="0" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
         <label class="text-sm text-gray-300">Image URL</label>
-        <input id="pImage" class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        <input id="pImage"
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
         <label class="text-sm text-gray-300">Description</label>
-        <textarea id="pDescription" rows="3" class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
+        <textarea id="pDescription" rows="3"
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
       </div>
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save</button>
-        <button type="button" onclick="closeModal()" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition">Cancel</button>
+        <button type="submit"
+          class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save</button>
+        <button type="button" onclick="closeModal()"
+          class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition">Cancel</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-let products = [];
-let filtered = [];
-let editingId = null;
-const tableEl = document.getElementById("productsTable");
+  let products = [];
+  let filtered = [];
+  let editingId = null;
+  const tableEl = document.getElementById("productsTable");
 
-function authHeaders() {
-  const token = localStorage.getItem("admin_token");
-  if (!token) {
-    window.location.href = "/admin/login";
-    return null;
-  }
-  return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-}
-
-async function fetchProducts() {
-  const headers = authHeaders();
-  if (!headers) return;
-  const res = await fetch("/admin/api/products", { headers });
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem("admin_token");
-      return window.location.href = "/admin/login";
+  function authHeaders() {
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      window.location.href = "/admin/login";
+      return null;
     }
-    tableEl.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-400">Failed to load products.</td></tr>`;
-    return;
+    return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
   }
-  products = await res.json();
-  filtered = products;
-  populateCategories();
-  renderTable(filtered);
-}
 
-function populateCategories() {
-  const select = document.getElementById("categoryFilter");
-  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
-  select.innerHTML = `<option value=\"\">All Categories</option>` + cats.map(c => `<option value=\"${c}\">${c}</option>`).join("");
-}
-
-function renderTable(list) {
-  if (!list.length) {
-    tableEl.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No products found.</td></tr>`;
-    return;
+  async function fetchProducts() {
+    const headers = authHeaders();
+    if (!headers) return;
+    const res = await fetch("/admin/api/products", { headers });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("admin_token");
+        return window.location.href = "/admin/login";
+      }
+      tableEl.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-400">Failed to load products.</td></tr>`;
+      return;
+    }
+    products = await res.json();
+    filtered = products;
+    populateCategories();
+    renderTable(filtered);
   }
-  tableEl.innerHTML = list.map(p => `
-    <tr class="hover:bg-white/5 cursor-pointer transition" onclick="window.location.href='/admin/products/${p.id}'">
+
+  function populateCategories() {
+    const select = document.getElementById("categoryFilter");
+    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+    select.innerHTML = `<option value=\"\">All Categories</option>` + cats.map(c => `<option value=\"${c}\">${c}</option>`).join("");
+  }
+
+  function renderTable(list) {
+    if (!list.length) {
+      tableEl.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">No products found.</td></tr>`;
+      return;
+    }
+    tableEl.innerHTML = list.map(p => `
+    <tr class="hover:bg-white/5 cursor-pointer transition">
       <td class="px-4 py-3"><img src="${p.image_url || '/static/img/placeholder.webp'}" class="h-12 w-12 rounded-lg object-cover"></td>
       <td class="px-4 py-3 font-semibold text-white">${p.name}</td>
       <td class="px-4 py-3 text-gray-300">${p.category || '—'}</td>
       <td class="px-4 py-3 text-purple-300 font-semibold">₹${p.price}</td>
       <td class="px-4 py-3 flex flex-wrap gap-2">
-        <!-- <a href="/admin/products/${p.id}" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm">View</a> -->
+        <button onclick="window.location.href='/admin/products/${p.id}'"" class="px-3 py-2 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-slate-300 rounded-lg text-sm">View</button>
         <button onclick="openEdit(${p.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
+        <button onclick="duplicateProduct(${p.id})" class="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-lg text-sm"> Duplicate </button>
         <button onclick="deleteProduct(${p.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
       </td>
     </tr>
   `).join("");
-}
-
-document.getElementById("searchInput").addEventListener("input", (e) => {
-  applyFilters();
-});
-
-document.getElementById("categoryFilter").addEventListener("change", applyFilters);
-
-function applyFilters() {
-  const q = document.getElementById("searchInput").value.toLowerCase();
-  const cat = document.getElementById("categoryFilter").value;
-  filtered = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q);
-    const matchesCat = !cat || p.category === cat;
-    return matchesSearch && matchesCat;
-  });
-  renderTable(filtered);
-}
-
-document.getElementById("addBtn").addEventListener("click", () => {
-  editingId = null;
-  document.getElementById("modalTitle").textContent = "Add Product";
-  document.getElementById("productForm").reset();
-  openModal();
-});
-
-function openEdit(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  editingId = id;
-  document.getElementById("modalTitle").textContent = "Edit Product";
-  document.getElementById("pName").value = p.name || "";
-  document.getElementById("pCategory").value = p.category || "";
-  document.getElementById("pPrice").value = p.price || 0;
-  document.getElementById("pImage").value = p.image_url || "";
-  document.getElementById("pDescription").value = p.description || "";
-  openModal();
-}
-
-function openModal() { document.getElementById("modal").classList.remove("hidden"); }
-function closeModal() { document.getElementById("modal").classList.add("hidden"); }
-
-document.getElementById("productForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const headers = authHeaders();
-  if (!headers) return;
-  const body = {
-    name: document.getElementById("pName").value,
-    category: document.getElementById("pCategory").value,
-    price: parseFloat(document.getElementById("pPrice").value || 0),
-    image_url: document.getElementById("pImage").value,
-    description: document.getElementById("pDescription").value
-  };
-  const res = await fetch(editingId ? `/admin/api/products/${editingId}` : "/admin/api/products", {
-    method: editingId ? "PUT" : "POST",
-    headers,
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || "Failed to save product");
-    return;
   }
-  closeModal();
-  fetchProducts();
-});
 
-async function deleteProduct(id) {
-  const headers = authHeaders();
-  if (!headers) return;
-  if (!confirm("Delete this product?")) return;
-  const res = await fetch(`/admin/api/products/${id}`, { method: "DELETE", headers });
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || "Failed to delete product");
-    return;
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    applyFilters();
+  });
+
+  document.getElementById("categoryFilter").addEventListener("change", applyFilters);
+
+  function applyFilters() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    const cat = document.getElementById("categoryFilter").value;
+    filtered = products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q);
+      const matchesCat = !cat || p.category === cat;
+      return matchesSearch && matchesCat;
+    });
+    renderTable(filtered);
   }
-  fetchProducts();
-}
 
-document.addEventListener("DOMContentLoaded", fetchProducts);
+  document.getElementById("addBtn").addEventListener("click", () => {
+    editingId = null;
+    document.getElementById("modalTitle").textContent = "Add Product";
+    document.getElementById("productForm").reset();
+    openModal();
+  });
+
+  function openEdit(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    editingId = id;
+    document.getElementById("modalTitle").textContent = "Edit Product";
+    document.getElementById("pName").value = p.name || "";
+    document.getElementById("pCategory").value = p.category || "";
+    document.getElementById("pPrice").value = p.price || 0;
+    document.getElementById("pImage").value = p.image_url || "";
+    document.getElementById("pDescription").value = p.description || "";
+    openModal();
+  }
+
+  function openModal() { document.getElementById("modal").classList.remove("hidden"); }
+  function closeModal() { document.getElementById("modal").classList.add("hidden"); }
+
+  document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const headers = authHeaders();
+    if (!headers) return;
+    const body = {
+      name: document.getElementById("pName").value,
+      category: document.getElementById("pCategory").value,
+      price: parseFloat(document.getElementById("pPrice").value || 0),
+      image_url: document.getElementById("pImage").value,
+      description: document.getElementById("pDescription").value
+    };
+    const res = await fetch(editingId ? `/admin/api/products/${editingId}` : "/admin/api/products", {
+      method: editingId ? "PUT" : "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Failed to save product");
+      return;
+    }
+    closeModal();
+    fetchProducts();
+  });
+
+  async function duplicateProduct(productId) {
+    if (!confirm("Duplicate this product and its variants?")) return;
+    const headers = authHeaders();
+    if (!headers) return;
+
+    const res = await fetch(`/admin/api/products/${productId}/duplicate`, {
+      method: "POST",
+      headers
+    });
+
+    const data = await res.json();
+    alert(data.message || data.error);
+
+    if (res.ok) {
+      window.location.reload();
+    }
+  }
+
+
+  async function deleteProduct(id) {
+    if (!confirm("Delete this product?")) return;
+    const headers = authHeaders();
+    if (!headers) return;
+
+    const res = await fetch(`/admin/api/products/${id}`, { method: "DELETE", headers });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Failed to delete product");
+      return;
+    }
+    fetchProducts();
+  }
+
+  document.addEventListener("DOMContentLoaded", fetchProducts);
 </script>
 {% endblock %}
-
