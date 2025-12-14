@@ -30,7 +30,7 @@
             <th class="px-4 py-3">Name</th>
             <th class="px-4 py-3">Category</th>
             <th class="px-4 py-3">Price</th>
-            <th class="px-4 py-3">Actions</th>
+            <th class="px-32 py-3">Actions</th>
           </tr>
         </thead>
         <tbody id="productsTable" class="divide-y divide-white/5">
@@ -136,11 +136,11 @@
       <td class="px-4 py-3 font-semibold text-white">${p.name}</td>
       <td class="px-4 py-3 text-gray-300">${p.category || '—'}</td>
       <td class="px-4 py-3 text-purple-300 font-semibold">₹${p.price}</td>
-      <td class="px-4 py-3 flex flex-wrap gap-2">
-        <button onclick="window.location.href='/admin/products/${p.id}'"" class="px-3 py-2 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-slate-300 rounded-lg text-sm">View</button>
-        <button onclick="openEdit(${p.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
-        <button onclick="duplicateProduct(${p.id})" class="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-lg text-sm"> Duplicate </button>
-        <button onclick="deleteProduct(${p.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
+      <td class="px-16 py-3 flex flex-wrap gap-2">
+        <button onclick="window.location.href='/admin/products/${p.id}'"" class="px-3 mx-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-lg text-sm">View</button>
+        <button onclick="openEdit(${p.id})" class="px-3 mx-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
+        <button onclick="duplicateProduct(${p.id})" class="px-3 mx-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm"> Duplicate </button>
+        <button onclick="deleteProduct(${p.id})" class="px-3 mx-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
       </td>
     </tr>
   `).join("");
