@@ -283,6 +283,18 @@ def register_user():
 
     try:
         res = supabase.auth.sign_up({"email": email, "password": password})
+        
+        if res.user is None:
+            error_message = "Registration failed"
+
+            # Supabase sometimes gives helpful messages
+            if hasattr(res, "error") and res.error:
+                if "already" in res.error.message.lower():
+                    error_message = "Email already exists"
+                else:
+                    error_message = res.error.message
+
+            return jsonify({"error": error_message}), 409
 
         if res.user:
             user_data = res.user
@@ -325,6 +337,22 @@ def login_user():
             })
     except Exception as e:
         return jsonify({"error": "Invalid Credentials"}), 401
+    
+# -----------------------------
+# ----GET: Verified or not
+# -----------------------------
+@bp.route("/check-verification", methods=["GET"])
+def check_verification():
+    supabase = get_supabase()
+
+    try:
+        user = supabase.auth.get_user()
+        if user and user.user and user.user.email_confirmed_at:
+            return jsonify({"verified": True})
+        return jsonify({"verified": False})
+    except:
+        return jsonify({"verified": False})
+
 
 # ----------------------------------------------------------
 # --END OF USER AUTH-
@@ -635,6 +663,10 @@ def auth_test_page():
 # -----------------------------
 # VERIFICATION PAGE RENDERING
 # -----------------------------
+@bp.route("/verify-email")
+def verify_email_page():
+    return render_template("verify_email.html")
+
 @bp.route("/email-verified")
 def email_verified_page():
     return render_template("email_verified.html")
@@ -659,13 +691,6 @@ def profile():
 @bp.route("/cart-page")
 def cart_page():
     return render_template("cart.html")
-
-# # -----------------------------
-# # ADMIN PAGE RENDERING
-# # -----------------------------
-# @bp.route('/admin')
-# def admin():
-#     return render_template('../admin/templates/admin_dashboard.html')
 
 # -----------------------------
 # LOGIN PAGE RENDERING

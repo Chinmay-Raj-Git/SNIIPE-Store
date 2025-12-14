@@ -3,12 +3,16 @@
 
 {% block content %}
 <section class="flex justify-center items-center min-h-screen px-6 py-10">
-    <div class="w-full max-w-xl bg-black/50 border border-white/10 backdrop-blur-xl p-10 rounded-3xl shadow-2xl text-center">
+    <div
+        class="w-full max-w-xl bg-black/50 border border-white/10 backdrop-blur-xl p-10 rounded-3xl shadow-2xl text-center">
         <!-- Success Icon -->
         <div class="mb-6">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-12 h-12 text-green-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-12 h-12 text-green-400">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
         </div>
@@ -17,27 +21,27 @@
         <div class="mb-8">
             <h1 class="text-3xl font-bold mb-3">Email Verified Successfully!</h1>
             <p class="text-gray-400 text-lg leading-relaxed">
-                Your email address has been confirmed. You can now enjoy all the features of SNIPE.
+                Your email address has been confirmed. You can safely close this site.
             </p>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="space-y-4">
-            <a href="/login-page" 
-               class="block w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">
-                Continue to Login
-            </a>
-            <a href="/home" 
-               class="block w-full border border-white/10 hover:bg-white/5 py-4 rounded-xl font-semibold transition">
-                Browse Products
-            </a>
         </div>
 
         <!-- Additional Info -->
         <div class="mt-8 pt-6 border-t border-white/10">
-            <p class="text-sm text-gray-500">
-                You can safely close this page. Your account is now fully activated.
+            <p class="text-sm text-gray-500 mt-2 mb-6">
+                If your page has not redirected automatically, try the following buttons
             </p>
+
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <a href="/login-page"
+                    class="block w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">
+                    Go to Login
+                </a>
+                <a href="/home"
+                    class="block w-full border border-white/10 hover:bg-white/5 py-4 rounded-xl font-semibold transition">
+                    Browse Products
+                </a>
+            </div>
         </div>
     </div>
 </section>
