@@ -10,15 +10,17 @@
         <div>
             <!-- MAIN IMAGE -->
             <img id="mainImage" src="{{ product.image_url }}" alt="{{ product.name }}"
-                class="w-full h-[500px] object-cover rounded-lg shadow-lg transition duration-300 hover:scale-105">
+                class="w-auto h-[350px] object-fill rounded-lg shadow-lg transition duration-300 hover:scale-105">
 
             <!-- THUMBNAILS -->
             <div class="flex gap-3 mt-4">
                 <!-- Placeholder thumbnails (future support) -->
                 {% for i in range(4) %}
-                <div class="w-20 h-20 bg-gray-800 rounded-md flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-purple-500 thumbnail-placeholder"
-                    onclick="swapImage('{{ product.image_url }}')">
-                    <span class="text-xs text-gray-400">Preview</span>
+                <div class="w-20 h-20 overflow-hidden bg-gray-800 rounded-md flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-purple-500 thumbnail-placeholder"
+                    onclick="swapImage(document.getElementById('img-1').src)">
+                    <!-- <span class="text-xs text-gray-400">Preview</span> -->
+                    <img src="https://emaopymcdtvsaoeyzjyu.supabase.co/storage/v1/object/public/images/products/goat_front_black.png" 
+                    alt="" id="img-1" class="w-auto h-[150px] object-contain rounded-lg shadow-lg">
                 </div>
                 {% endfor %}
             </div>
@@ -94,12 +96,12 @@
             <!-- BUTTONS -->
             <div class="flex flex-col sm:flex-row gap-4 mt-8">
                 <button id="addToCartBtn" onclick="addToCart()"
-                    class="flex-1 border border-purple-500 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
                     ADD TO CART
                 </button>
 
                 <button id="buyNowBtn" onclick="buyNow()"
-                    class="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="flex-1 bg-purple-600 hover:bg-purple-800 active:bg-purple-900 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
                     BUY NOW
                 </button>
             </div>
@@ -162,20 +164,32 @@
 
     // Select color
     function selectColor(color) {
-        selectedColor = color;
-
-        document.querySelectorAll("[id^='color-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
-        document.getElementById("color-" + color).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
-        updateVariantState();
+        if (selectedColor == color) {
+            selectedColor = null;
+            document.getElementById("color-" + color).classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
+        else {
+            selectedColor = color;
+            document.querySelectorAll("[id^='color-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+            document.getElementById("color-" + color).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
     }
 
     // Select size
     function selectSize(size) {
-        selectedSize = size;
-
-        document.querySelectorAll("[id^='size-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
-        document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
-        updateVariantState();
+        if (selectedSize == size) {
+            selectedSize = null;
+            document.getElementById("size-" + size).classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
+        else {
+            selectedSize = size;
+            document.querySelectorAll("[id^='size-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+            document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
     }
 
     function findVariant() {
