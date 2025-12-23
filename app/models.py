@@ -12,9 +12,7 @@ class Product(db.Model):
     name = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text, nullable=True)
     price = db.Column(db.Numeric(10, 2), nullable=False)
-    # stock = db.Column(db.Integer, nullable=False, default=0)
     category = db.Column(db.String(50), nullable=True)
-    image_url = db.Column(db.String(255), nullable=True)
 
 class Product_Variants(db.Model):
     __tablename__ = 'product_variants'
@@ -25,11 +23,24 @@ class Product_Variants(db.Model):
     size = db.Column(db.String(20), nullable=False)
     stock = db.Column(db.Integer, nullable=False, default=0)
     price_override = db.Column(db.Float, nullable=True)
-    image_url = db.Column(db.String(255), nullable=True)
+
+    product = db.relationship('Product', backref='variants')
  
     def __repr__(self):
         return f"<Variant {self.color}-{self.size} (Product ID: {self.product_id})>"
 
+class Product_Variant_Images(db.Model):
+    __tablename__ = 'product_variant_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    color = db.Column(db.String(50), nullable=False)
+    image_url = db.Column(db.String(255), nullable=False)
+
+    role = db.Column(db.String(20), nullable=False)
+    sort_order = db.Column(db.Integer, default=0)
+
+    product = db.relationship('Product', backref='variant_images')
 
 
 # -----------------------------

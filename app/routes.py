@@ -20,109 +20,93 @@ bp = Blueprint("routes", __name__)
 @bp.route("/products", methods=["GET"])
 def get_products():
     products = Product.query.all()
-    return jsonify([
-        {
+
+    response = []
+    for p in products:
+        thumbnail = Product_Variant_Images.query.filter_by(
+            product_id=p.id,
+            role="thumbnail"
+        ).order_by(Product_Variant_Images.sort_order.asc()).first()
+
+        response.append({
             "id": p.id,
             "name": p.name,
             "description": p.description,
             "price": float(p.price),
             "category": p.category,
-            "image_url": p.image_url
-        }
-        for p in products
-    ])
+            "thumbnail": thumbnail.image_url if thumbnail else None
+        })
+
+    return jsonify(response)
 
 
 # -----------------------------
-# ----GET: Single product by ID
+# ----GET: Product by id
 # -----------------------------
-# @bp.route("/product/<int:product_id>")
-# def product_page(product_id):
-#     product = Product.query.get_or_404(product_id)
-#     variants = Product_Variants.query.filter_by(product_id=product_id).all()
-#     similar = Product.query.filter(
-#         Product.category == product.category,
-#         Product.id != product.id
-#     ).limit(6).all()
-
-#     return render_template(
-#         "product.html",
-#         product=product,
-#         variants=variants,
-#         similar=similar
-#     )
 @bp.route("/product/<int:product_id>")
 def product_page(product_id):
     product = Product.query.get_or_404(product_id)
 
     variants = Product_Variants.query.filter_by(product_id=product_id).all()
-    colors = list({v.color for v in variants})
-    sizes = list({v.size for v in variants})
 
-    similar = Product.query.filter(Product.category == product.category, Product.id != product_id).limit(4)
+    # Group variants by color
+    color_map = {}
 
-    return render_template("product.html",
-                           product=product,
-                           colors=colors,
-                           sizes=sizes,
-                           variants=[{
-                               "id": v.id,
-                               "color": v.color,
-                               "size": v.size,
-                               "image_url": v.image_url,
-                               "stock": v.stock,
-                               "price_override": v.price_override
-                           } for v in variants],
-                           similar=similar)
+    for v in variants:
+        if v.color not in color_map:
+            images = Product_Variant_Images.query.filter_by(
+                product_id=product_id,
+                color=v.color
+            ).order_by(Product_Variant_Images.sort_order.asc()).all()
 
+            color_map[v.color] = {
+                "images": [img.image_url for img in images],
+                "sizes": []
+            }
 
+        color_map[v.color]["sizes"].append({
+            "variant_id": v.id,
+            "size": v.size,
+            "stock": v.stock,
+            "price_override": v.price_override
+        })
 
+    similar = Product.query.filter(
+        Product.category == product.category,
+        Product.id != product_id
+    ).limit(4)
 
-# -----------------------------
-# ----POST: Add a new product
-# -----------------------------
-@bp.route("/products", methods=["POST"])
-def add_product():
-    data = request.json
-    product = Product(
-        name=data.get("name"),
-        description=data.get("description"),
-        price=data.get("price"),
-        category=data.get("category"),
-        image_url=data.get("image_url")
+    return render_template(
+        "product.html",
+        product=product,
+        color_data=color_map,
+        similar=similar
     )
-    db.session.add(product)
-    db.session.commit()
-    return jsonify({"message": "Product added successfully", "id": product.id}), 201
 
 
 # -----------------------------
-# ----PUT: Update product
+# ----GET: images for a product
 # -----------------------------
-@bp.route("/products/<int:product_id>", methods=["PUT"])
-def update_product(product_id):
-    product = Product.query.get_or_404(product_id)
-    data = request.json
+@bp.route("/products/<int:product_id>/images", methods=["GET"])
+def get_product_images(product_id):
+    color = request.args.get("color")
 
-    product.name = data.get("name", product.name)
-    product.description = data.get("description", product.description)
-    product.price = data.get("price", product.price)
-    product.category = data.get("category", product.category)
-    product.image_url = data.get("image_url", product.image_url)
+    query = Product_Variant_Images.query.filter_by(product_id=product_id)
+    if color:
+        query = query.filter_by(color=color)
 
-    db.session.commit()
-    return jsonify({"message": "Product updated successfully"})
+    images = query.order_by(Product_Variant_Images.sort_order.asc()).all()
 
-
-# -----------------------------
-# ----DELETE: Remove product
-# -----------------------------
-@bp.route("/products/<int:product_id>", methods=["DELETE"])
-def delete_product(product_id):
-    product = Product.query.get_or_404(product_id)
-    db.session.delete(product)
-    db.session.commit()
-    return jsonify({"message": "Product deleted successfully"})
+    return jsonify([
+        {
+            "id": img.id,
+            "color": img.color,
+            "image_url": img.image_url,
+            "role": img.role,
+            "sort_order": img.sort_order
+        } for img in images
+    ])
+    
 
 # ----------------------------------------------------------
 # --END OF PRODUCTS--
@@ -135,7 +119,7 @@ def delete_product(product_id):
 # ----------------------------------------------------------
 
 # -----------------------------
-# ----GET all product variants
+# ----GET: all product variants
 # -----------------------------
 @bp.route('/products/<int:product_id>/variants', methods=['GET'])
 def get_variants_by_id(product_id):
@@ -151,114 +135,12 @@ def get_variants_by_id(product_id):
             "color": v.color,
             "size": v.size,
             "stock": v.stock,
-            "price_override": v.price_override,
-            "image_url": v.image_url
+            "price_override": v.price_override
         } for v in variants
     ]
 
     return jsonify(result)
 
-@bp.route('/products/<string:product_name>/variants', methods=['GET'])
-def get_variants_by_name(product_name):
-    product = Product.query.filter_by(name=product_name).first()
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-
-    product_id = product.id
-    variants = Product_Variants.query.filter_by(product_id=product_id).all()
-    result = [
-        {
-            "id": v.id,
-            "product_id": v.product_id,
-            "color": v.color,
-            "size": v.size,
-            "stock": v.stock,
-            "price_override": v.price_override,
-            "image_url": v.image_url
-        } for v in variants
-    ]
-
-    return jsonify(result)
-
-# -----------------------------
-# ----POST: Add a new product variant
-# -----------------------------
-@bp.route('/products/<int:product_id>/variants', methods=['POST'])
-def add_variant(product_id):
-    data = request.get_json()
-
-    product = Product.query.get(product_id)
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-
-    variant = Product_Variants(
-        product_id=product_id,
-        color=data.get('color'),
-        size=data.get('size'),
-        stock=data.get('stock', 0),
-        price_override=data.get('price_override'),
-        image_url=data.get('image_url')
-    )
-    db.session.add(variant)
-    db.session.commit()
-
-    return jsonify({"message": "Variant added successfully", "variant_id": variant.id}), 201
-
-@bp.route('/products/<string:product_name>/variants', methods=['POST'])
-def add_variant_by_name(product_name):
-    data = request.get_json()
-
-    product = Product.query.filter_by(name=product_name).first()
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
-
-    product_id = product.id
-    variant = Product_Variants(
-        product_id=product_id,
-        color=data.get('color'),
-        size=data.get('size'),
-        stock=data.get('stock', 0),
-        price_override=data.get('price_override'),
-        image_url=data.get('image_url')
-    )
-    db.session.add(variant)
-    db.session.commit()
-
-    return jsonify({"message": "Variant added successfully", "variant_id": variant.id}), 201
-
-# -----------------------------
-# ----PUT: Update a product variant
-# -----------------------------
-@bp.route('/variants/<int:variant_id>', methods=['PUT'])
-def update_variant(variant_id):
-    data = request.get_json()
-    variant = Product_Variants.query.get(variant_id)
-
-    if not variant:
-        return jsonify({"error": "Variant not found"}), 404
-
-    variant.color = data.get('color', variant.color)
-    variant.size = data.get('size', variant.size)
-    variant.stock = data.get('stock', variant.stock)
-    variant.price_override = data.get('price_override', variant.price_override)
-    variant.image_url = data.get('image_url', variant.image_url)
-
-    db.session.commit()
-    return jsonify({"message": "Variant updated successfully"})
-
-# -----------------------------
-# ----DELETE: Delete a product variant
-# -----------------------------
-@bp.route('/variants/<int:variant_id>', methods=['DELETE'])
-def delete_variant(variant_id):
-    variant = Product_Variants.query.get(variant_id)
-
-    if not variant:
-        return jsonify({"error": "Variant not found"}), 404
-
-    db.session.delete(variant)
-    db.session.commit()
-    return jsonify({"message": "Variant deleted successfully"})
 
 # ----------------------------------------------------------
 # --END OF PRODUCT VARIANTS-
