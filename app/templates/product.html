@@ -9,22 +9,13 @@
         <!-- LEFT SIDE: IMAGES -->
         <div>
             <!-- MAIN IMAGE -->
-            <img id="mainImage" src="{{ product.image_url }}" alt="{{ product.name }}"
-                class="w-auto h-[350px] object-fill rounded-lg shadow-lg transition duration-300 hover:scale-105">
+            <img id="mainImage" src="/static/img/placeholder.webp" alt="{{ product.name }}"
+                class="w-full h-[350px] object-cover rounded-lg shadow-lg transition duration-300">
 
             <!-- THUMBNAILS -->
-            <div class="flex gap-3 mt-4">
-                <!-- Placeholder thumbnails (future support) -->
-                {% for i in range(4) %}
-                <div class="w-20 h-20 overflow-hidden bg-gray-800 rounded-md flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-purple-500 thumbnail-placeholder"
-                    onclick="swapImage(document.getElementById('img-1').src)">
-                    <!-- <span class="text-xs text-gray-400">Preview</span> -->
-                    <img src="https://emaopymcdtvsaoeyzjyu.supabase.co/storage/v1/object/public/images/products/goat_front_black.png" 
-                    alt="" id="img-1" class="w-auto h-[150px] object-contain rounded-lg shadow-lg">
-                </div>
-                {% endfor %}
-            </div>
+            <div id="thumbnailStrip" class="flex gap-3 mt-4"></div>
         </div>
+
 
         <!-- RIGHT SIDE: PRODUCT INFO -->
         <div class="bg-black/30 border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl">
@@ -123,7 +114,7 @@
         <a href="/product/{{ item.id }}"
             class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
             <div class="overflow-hidden">
-                <img src="{{ item.image_url or '/static/img/placeholder.webp' }}" alt="{{ item.name }}"
+                <img src="{{ item.thumbnail or '/static/img/placeholder.webp' }}" alt="{{ item.name }}"
                     class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
             </div>
             <div class="p-4">
@@ -142,6 +133,8 @@
 
 <!-- JS -->
 <script>
+    const COLOR_DATA = {{ color_data | tojson | safe }};
+
     let selectedColor = null;
     let selectedSize = null;
     let selectedVariant = null;
@@ -157,24 +150,38 @@
     const addBtn = document.getElementById("addToCartBtn");
     const buyBtn = document.getElementById("buyNowBtn");
 
-    // Swap main image
-    function swapImage(url) {
-        document.getElementById("mainImage").src = url;
+    function selectColor(color) {
+        selectedColor = color;
+
+        document.querySelectorAll("[id^='color-']")
+            .forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+
+        document.getElementById("color-" + color)
+            .classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+
+        renderImagesForColor(color);
+        updateVariantState();
     }
 
-    // Select color
-    function selectColor(color) {
-        if (selectedColor == color) {
-            selectedColor = null;
-            document.getElementById("color-" + color).classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40");
-            updateVariantState();
+    function renderImagesForColor(color) {
+        const data = COLOR_DATA[color];
+        if (!data || !data.images.length) {
+            document.getElementById("mainImage").src = "/static/img/placeholder.webp";
+            document.getElementById("thumbnailStrip").innerHTML = "";
+            return;
         }
-        else {
-            selectedColor = color;
-            document.querySelectorAll("[id^='color-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
-            document.getElementById("color-" + color).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
-            updateVariantState();
-        }
+
+        const primary =
+            data.images.find(i => i.role === "primary") || data.images[0];
+
+        document.getElementById("mainImage").src = primary.image_url;
+
+        document.getElementById("thumbnailStrip").innerHTML =
+            data.images.map(img => `
+            <img src="${img.image_url}"
+                 onclick="document.getElementById('mainImage').src='${img.image_url}'"
+                 class="w-20 h-20 object-cover rounded-md cursor-pointer border border-white/10 hover:border-purple-500 transition">
+        `).join("");
     }
 
     // Select size
@@ -341,6 +348,14 @@
         }
         alert("Razorpay integration coming next...");
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const colors = Object.keys(COLOR_DATA);
+        if (colors.length) {
+            selectColor(colors[0]);
+        }
+    });
+
 </script>
 
 {% endblock %}

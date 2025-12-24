@@ -448,10 +448,10 @@ def list_orders():
                 {
                     "product": item.product.name,
                     "variant_color": item.variant.color if item.variant else None,
-                    "variant_size": item.variant.size,
+                    "variant_size": item.variant.size if item.variant else None,
                     "quantity": item.quantity,
                     "subtotal": str(item.subtotal)
-                } for item in order.items
+                } for item in order.itemsx
             ]
         })
     return jsonify({"orders": data})
