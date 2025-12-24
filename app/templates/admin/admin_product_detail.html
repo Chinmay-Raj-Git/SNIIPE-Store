@@ -40,11 +40,6 @@
             class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
         </div>
         <div class="space-y-3 md:col-span-2">
-          <label class="text-sm text-gray-300">Image URL</label>
-          <input id="fImage"
-            class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
-        </div>
-        <div class="space-y-3 md:col-span-2">
           <label class="text-sm text-gray-300">Description</label>
           <textarea id="fDescription" rows="4"
             class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
@@ -94,6 +89,55 @@
       </table>
     </div>
   </div>
+
+  <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-xl font-semibold">Product Images</h2>
+        <p class="text-gray-400 text-sm">Manage variant specific images</p>
+      </div>
+      <button onclick="openImageModal()"
+        class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">+ Add
+        Image</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
+          <tr>
+            <th class="px-4 py-3">Color</th>
+            <th class="px-4 py-3">Images</th>
+            <th class="px-4 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="imagesTable" class="divide-y divide-white/5">
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading images...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Product Images</h3>
+
+  <select id="imageColor">
+    <option value="Black">Black</option>
+    <option value="White">White</option>
+  </select>
+
+  <input id="imageUrl" placeholder="Image URL">
+  <select id="imageRole">
+    <option value="thumbnail">Thumbnail</option>
+    <option value="primary">Primary</option>
+    <option value="gallery">Gallery</option>
+  </select>
+
+  <input id="sortOrder" type="number">
+
+  <button onclick="addImage()">Add Image</button>
+
+  <div id="imageGrid"></div>
+
 </div>
 
 <!-- Variant Modal -->
@@ -120,11 +164,6 @@
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
-        <label class="text-sm text-gray-300">Image URL</label>
-        <input id="vImage"
-          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
-      </div>
-      <div>
         <label class="text-sm text-gray-300">Price Override (₹)</label>
         <input id="vPrice" type="number" step="0.01" min="0"
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"
@@ -135,6 +174,45 @@
           class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save
           Variant</button>
         <button type="button" onclick="closeVariantModal()"
+          class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!--Add-Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+  <div class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="imageModalTitle" class="text-xl font-bold">Add Image</h3>
+      <button onclick="closeImageModal()" class="text-gray-400 hover:text-white transition">✕</button>
+    </div>
+    <form id="imageForm" class="space-y-4">
+      <div>
+        <label class="text-sm text-gray-300">Color</label>
+        <select id="iColor" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none appearance-none">
+          <option selected
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            value="">Select a Color Variant</option>
+          <option value="Black">Black</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Image URL</label>
+        <input id="image" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Sort Order (Determines placement order of images in the product page)</label>
+        <input id="sortOrder" type="number" min="0" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+          class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save
+          Image</button>
+        <button type="button" onclick="closeImageModal()"
           class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition">Cancel</button>
       </div>
     </form>
@@ -161,13 +239,13 @@
   function setPreview() {
     document.getElementById("productName").textContent = product?.name || "";
     document.getElementById("productCategory").textContent = product?.category || "";
-    document.getElementById("productImage").src = product?.image_url || "/static/img/placeholder.webp";
+    // document.getElementById("productImage").src = product?.image_url || "/static/img/placeholder.webp";
     document.getElementById("previewName").textContent = product?.name || "";
     document.getElementById("previewPrice").textContent = product?.price ? `₹${product.price}` : "";
     document.getElementById("fName").value = product?.name || "";
     document.getElementById("fCategory").value = product?.category || "";
     document.getElementById("fPrice").value = product?.price || 0;
-    document.getElementById("fImage").value = product?.image_url || "";
+    // document.getElementById("fImage").value = product?.image_url || "";
     document.getElementById("fDescription").value = product?.description || "";
   }
 
@@ -192,10 +270,32 @@
   `).join("");
   }
 
+  function renderImages() {
+    const tbody = document.getElementById("variantsTable");
+    if (!variants.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No variants yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = variants.map(v => `
+    <tr class="hover:bg-white/5 transition">
+      <td class="px-4 py-3"><img src="${v.image_url || '/static/img/placeholder.webp'}" class="h-12 w-12 rounded-lg object-cover"></td>
+      <td class="px-4 py-3 text-white">${v.color}</td>
+      <td class="px-4 py-3 text-white">${v.size}</td>
+      <td class="px-4 py-3 text-gray-200">${v.stock}</td>
+      <td class="px-4 py-3 text-purple-300">${v.price_override ? '₹' + v.price_override : '—'}</td>
+      <td class="px-4 py-3 flex gap-2">
+        <button onclick="editVariant(${v.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
+        <button onclick="deleteVariant(${v.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
+      </td>
+    </tr>
+  `).join("");
+  }
+
   async function loadProduct() {
     const headers = authHeaders();
     if (!headers) return;
     const res = await fetch(`/admin/api/products/${productId}`, { headers });
+
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem("admin_token");
@@ -204,9 +304,11 @@
       document.body.innerHTML = "<div class='p-8 text-red-400'>Failed to load product.</div>";
       return;
     }
+
     const data = await res.json();
     product = data;
     variants = data.variants || [];
+    images = data.images || [];
     setPreview();
     renderVariants();
   }
@@ -256,6 +358,14 @@
   }
   function closeVariantModal() { document.getElementById("variantModal").classList.add("hidden"); }
 
+  function openImageModal() {
+    editingVariantId = null;
+    document.getElementById("imageModalTitle").textContent = "Add Images";
+    document.getElementById("imageForm").reset();
+    document.getElementById("imageModal").classList.remove("hidden");
+  }
+  function closeImageModal() { document.getElementById("imageModal").classList.add("hidden"); }
+
   function editVariant(id) {
     const v = variants.find(x => x.id === id);
     if (!v) return;
@@ -292,6 +402,29 @@
     await loadProduct();
   });
 
+  document.getElementById("imageForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const headers = authHeaders();
+    if (!headers) return;
+    const body = {
+      color: document.getElementById("iColor").value,
+      img_url: document.getElementById("image").value,
+      sort_order: parseInt(document.getElementById("sortOrder").value || 0, 10)
+    };
+    const res = await fetch(editingVariantId ? `/admin/variants/${editingVariantId}` : `/admin/products/${productId}/variants`, {
+      method: editingVariantId ? "PUT" : "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Failed to save variant");
+      return;
+    }
+    closeVariantModal();
+    await loadProduct();
+  });
+
   async function deleteVariant(id) {
     const headers = authHeaders();
     if (!headers) return;
@@ -304,6 +437,51 @@
     }
     await loadProduct();
   }
+
+  function loadImages(productId) {
+    fetch(`/admin/api/products/${productId}`)
+      .then(res => res.json())
+      .then(data => {
+        const grid = document.getElementById("imageGrid");
+        grid.innerHTML = "";
+
+        data.images.forEach(img => {
+          grid.innerHTML += `
+          <div>
+            <img src="${img.image_url}" width="80">
+            <p>${img.color} • ${img.role}</p>
+            <button onclick="deleteImage(${img.id})">Delete</button>
+          </div>
+        `;
+        });
+      });
+  }
+
+  function addImage() {
+    fetch(`/admin/api/products/${productId}/images`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("admin_token")
+      },
+      body: JSON.stringify({
+        color: imageColor.value,
+        image_url: imageUrl.value,
+        role: imageRole.value,
+        sort_order: parseInt(sortOrder.value)
+      })
+    }).then(() => loadImages(productId));
+  }
+
+  function deleteImage(imageId) {
+    fetch(`/admin/api/images/${imageId}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("admin_token")
+      }
+    }).then(() => loadImages(productId));
+  }
+
 
   document.addEventListener("DOMContentLoaded", loadProduct);
 </script>
