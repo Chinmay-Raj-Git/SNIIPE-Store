@@ -11,25 +11,23 @@
 
         <!-- Search -->
         <div class="mt-4 md:mt-0">
-            <input id="searchInput" 
-                   type="text" 
-                   placeholder="Search products..." 
-                   class="px-4 py-2 bg-black/40 border border-white/10 rounded-lg w-64 focus:outline-none focus:border-purple-500">
+            <input id="searchInput" type="text" placeholder="Search products..."
+                class="px-4 py-2 bg-black/40 border border-white/10 rounded-lg w-64 focus:outline-none focus:border-purple-500">
         </div>
     </div>
 
     <!-- CATEGORY FILTERS -->
     <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
         <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
-                data-category="all">All</button>
+            data-category="all">All</button>
         <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
-                data-category="Hoodies">Hoodies</button>
+            data-category="Hoodies">Hoodies</button>
         <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
-                data-category="T-Shirts">T-Shirts</button>
+            data-category="T-Shirts">T-Shirts</button>
         <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
-                data-category="Pants">Pants</button>
+            data-category="Pants">Pants</button>
         <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
-                data-category="Accessories">Accessories</button>
+            data-category="Accessories">Accessories</button>
     </div>
 
     <!-- PRODUCT GRID -->
@@ -41,32 +39,33 @@
 
 {% block scripts %}
 <script>
-let allProducts = [];
+    let allProducts = [];
 
-// Load Products from backend
-async function loadProducts() {
-    const res = await fetch("/products");
-    allProducts = await res.json();
-    displayProducts(allProducts);
-}
-
-// Display products on screen
-function displayProducts(list) {
-    const container = document.getElementById("productsList");
-
-    if (!list.length) {
-        container.innerHTML = `<p class="text-gray-400">No products found.</p>`;
-        return;
+    // Load Products from backend
+    async function loadProducts() {
+        const res = await fetch("/products");
+        allProducts = await res.json();
+        displayProducts(allProducts);
     }
 
-    container.innerHTML = list.map(p => `
+    // Display products on screen
+    function displayProducts(list) {
+        const container = document.getElementById("productsList");
+
+        if (!list.length) {
+            container.innerHTML = `<p class="text-gray-400">No products found.</p>`;
+            return;
+        }
+
+        container.innerHTML = list.map(p => `
         <a href="/product/${p.id}"
            class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
 
             <div class="overflow-hidden">
-                <img src="${p.image_url || '/static/img/placeholder.webp'}"
+                <img src="${p.thumbnail || '/static/img/placeholder.webp'}"
+
                      alt="${p.name}"
-                     class="w-full h-80 object-cover group-hover:scale-105 transition duration-500">
+                     class="w-full h-80 object-cover rounded-lg group-hover:scale-105 transition duration-500">
             </div>
 
             <div class="p-5">
@@ -76,33 +75,33 @@ function displayProducts(list) {
             </div>
         </a>
     `).join("");
-}
+    }
 
-// Search Function
-document.getElementById("searchInput").addEventListener("input", (e) => {
-    const q = e.target.value.toLowerCase();
-    const filtered = allProducts.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        (p.category || "").toLowerCase().includes(q)
-    );
-    displayProducts(filtered);
-});
-
-// Filtering by category
-document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const cat = btn.dataset.category;
-
-        if (cat === "all") {
-            displayProducts(allProducts);
-        } else {
-            const filtered = allProducts.filter(p => (p.category || "").toLowerCase() === cat.toLowerCase());
-            displayProducts(filtered);
-        }
+    // Search Function
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+        const q = e.target.value.toLowerCase();
+        const filtered = allProducts.filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            (p.category || "").toLowerCase().includes(q)
+        );
+        displayProducts(filtered);
     });
-});
 
-// Load on page load
-document.addEventListener("DOMContentLoaded", loadProducts);
+    // Filtering by category
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const cat = btn.dataset.category;
+
+            if (cat === "all") {
+                displayProducts(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => (p.category || "").toLowerCase() === cat.toLowerCase());
+                displayProducts(filtered);
+            }
+        });
+    });
+
+    // Load on page load
+    document.addEventListener("DOMContentLoaded", loadProducts);
 </script>
 {% endblock %}

@@ -370,6 +370,52 @@ def admin_add_product_image(product_id):
 
     return jsonify({"message": "Image added successfully"})
 
+@admin_bp.route("/api/images/<int:image_id>", methods=["PUT"])
+@require_admin
+def admin_update_image(image_id):
+    try:
+        image = Product_Variant_Images.query.get_or_404(image_id)
+        data = request.json or {}
+
+        # Basic validation
+        if "image_url" in data and not data["image_url"]:
+            return jsonify({"error": "Image URL cannot be empty"}), 400
+
+        # Update fields if provided
+        if data.get("color") is not None:
+            image.color = data["color"]
+
+        if data.get("image_url") is not None:
+            image.image_url = data["image_url"]
+
+        if data.get("sort_order") is not None:
+            image.sort_order = data["sort_order"]
+
+        # Role handling (only if sent)
+        if data.get("role") is not None:
+            new_role = data["role"]
+
+            # Enforce single primary / thumbnail per product
+            if new_role in ("primary", "thumbnail"):
+                Product_Variant_Images.query.filter(
+                    Product_Variant_Images.product_id == image.product_id,
+                    Product_Variant_Images.role == new_role,
+                    Product_Variant_Images.id != image.id
+                ).update({"role": "gallery"})
+
+            image.role = new_role
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Image updated successfully",
+            "id": image.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 @admin_bp.route("/api/images/<int:image_id>", methods=["DELETE"])
 @require_admin

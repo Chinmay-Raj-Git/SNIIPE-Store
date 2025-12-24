@@ -51,8 +51,7 @@
         <p class="text-lg font-semibold text-white mt-1" id="previewName"></p>
         <p class="text-sm text-gray-400">Preview</p>
       </div>
-      <img id="productImage" src="/static/img/placeholder.webp"
-        class="w-auto h-[275px] object-cover rounded-xl border border-white/10">
+      <img id="productImage" src="" class="w-auto h-[275px] object-cover rounded-xl border border-white/10">
       <p class="text-purple-300 font-bold" id="previewPrice"></p>
 
 
@@ -73,7 +72,6 @@
       <table class="min-w-full text-left text-sm">
         <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
           <tr>
-            <th class="px-4 py-3">Image</th>
             <th class="px-4 py-3">Color</th>
             <th class="px-4 py-3">Size</th>
             <th class="px-4 py-3">Stock</th>
@@ -94,49 +92,35 @@
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-xl font-semibold">Product Images</h2>
-        <p class="text-gray-400 text-sm">Manage variant specific images</p>
+        <p class="text-gray-400 text-sm">Gallery, Primary & Thumbnail images</p>
       </div>
       <button onclick="openImageModal()"
-        class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">+ Add
-        Image</button>
+        class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">
+        + Add Image
+      </button>
     </div>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
-        <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
-          <tr>
-            <th class="px-4 py-3">Color</th>
-            <th class="px-4 py-3">Images</th>
-            <th class="px-4 py-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="imagesTable" class="divide-y divide-white/5">
-          <tr>
-            <td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading images...</td>
-          </tr>
-        </tbody>
-      </table>
+
+    <!-- GALLERY -->
+    <div>
+      <h3 class="text-sm text-gray-400 mb-2">Gallery</h3>
+      <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    </div>
+
+    <!-- PRIMARY -->
+    <div class="mb-6">
+      <h3 class="text-sm text-gray-400 mb-2">Primary Image</h3>
+      <div id="primaryImage"
+        class="h-40 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
+    </div>
+
+    <!-- THUMBNAIL -->
+    <div class="mb-6">
+      <h3 class="text-sm text-gray-400 mb-2">Thumbnail</h3>
+      <div id="thumbnailImage"
+        class="h-32 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
     </div>
   </div>
 
-  <h3>Product Images</h3>
-
-  <select id="imageColor">
-    <option value="Black">Black</option>
-    <option value="White">White</option>
-  </select>
-
-  <input id="imageUrl" placeholder="Image URL">
-  <select id="imageRole">
-    <option value="thumbnail">Thumbnail</option>
-    <option value="primary">Primary</option>
-    <option value="gallery">Gallery</option>
-  </select>
-
-  <input id="sortOrder" type="number">
-
-  <button onclick="addImage()">Add Image</button>
-
-  <div id="imageGrid"></div>
 
 </div>
 
@@ -195,7 +179,9 @@
           <option selected
             class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
             value="">Select a Color Variant</option>
-          <option value="Black">Black</option>
+          <option
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            value="Black">Black</option>
         </select>
       </div>
       <div>
@@ -204,7 +190,26 @@
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
       <div>
-        <label class="text-sm text-gray-300">Sort Order (Determines placement order of images in the product page)</label>
+        <label class="text-sm text-gray-300">Image Role</label>
+        <select id="iRole" required
+          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none appearance-none">
+          <option
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            selected value="gallery">Select a role</option>
+          <option
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            value="thumbnail">Thumbnail</option>
+          <option
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            value="primary">Primary</option>
+          <option
+            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
+            value="gallery">Gallery</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Sort Order (Determines placement order of images in the product
+          page)</label>
         <input id="sortOrder" type="number" min="0" required
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
@@ -224,6 +229,8 @@
   let product = null;
   let variants = [];
   let editingVariantId = null;
+  let editingImageId = null;
+
 
   function authHeaders() {
     const token = localStorage.getItem("admin_token");
@@ -234,18 +241,16 @@
     return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
   }
 
-  function goBack() { window.location.href = "/admin/products"; }
+  function goBack() { window.location.href = "/admin/api/products"; }
 
   function setPreview() {
     document.getElementById("productName").textContent = product?.name || "";
     document.getElementById("productCategory").textContent = product?.category || "";
-    // document.getElementById("productImage").src = product?.image_url || "/static/img/placeholder.webp";
     document.getElementById("previewName").textContent = product?.name || "";
     document.getElementById("previewPrice").textContent = product?.price ? `₹${product.price}` : "";
     document.getElementById("fName").value = product?.name || "";
     document.getElementById("fCategory").value = product?.category || "";
     document.getElementById("fPrice").value = product?.price || 0;
-    // document.getElementById("fImage").value = product?.image_url || "";
     document.getElementById("fDescription").value = product?.description || "";
   }
 
@@ -257,7 +262,6 @@
     }
     tbody.innerHTML = variants.map(v => `
     <tr class="hover:bg-white/5 transition">
-      <td class="px-4 py-3"><img src="${v.image_url || '/static/img/placeholder.webp'}" class="h-12 w-12 rounded-lg object-cover"></td>
       <td class="px-4 py-3 text-white">${v.color}</td>
       <td class="px-4 py-3 text-white">${v.size}</td>
       <td class="px-4 py-3 text-gray-200">${v.stock}</td>
@@ -270,25 +274,45 @@
   `).join("");
   }
 
-  function renderImages() {
-    const tbody = document.getElementById("variantsTable");
-    if (!variants.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No variants yet.</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = variants.map(v => `
-    <tr class="hover:bg-white/5 transition">
-      <td class="px-4 py-3"><img src="${v.image_url || '/static/img/placeholder.webp'}" class="h-12 w-12 rounded-lg object-cover"></td>
-      <td class="px-4 py-3 text-white">${v.color}</td>
-      <td class="px-4 py-3 text-white">${v.size}</td>
-      <td class="px-4 py-3 text-gray-200">${v.stock}</td>
-      <td class="px-4 py-3 text-purple-300">${v.price_override ? '₹' + v.price_override : '—'}</td>
-      <td class="px-4 py-3 flex gap-2">
-        <button onclick="editVariant(${v.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
-        <button onclick="deleteVariant(${v.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
-      </td>
-    </tr>
-  `).join("");
+  function renderImages(images) {
+    const primary = images.find(i => i.role === "primary");
+    const thumbnail = images.find(i => i.role === "thumbnail");
+    const gallery = images.filter(i => i.role === "gallery");
+
+    document.getElementById("productImage").src =
+      thumbnail ? thumbnail.image_url : '/static/img/placeholder.webp';
+
+    document.getElementById("primaryImage").innerHTML =
+      primary ? imageCard(primary) : emptySlot("Primary image not set");
+
+    document.getElementById("thumbnailImage").innerHTML =
+      thumbnail ? imageCard(thumbnail) : emptySlot("Thumbnail not set");
+
+    document.getElementById("galleryGrid").innerHTML =
+      gallery.length
+        ? gallery.map(imageCard).join("")
+        : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
+  }
+
+  function imageCard(img) {
+    return `
+  <div class="relative group">
+    <img src="${img.image_url}" class="w-full h-40 object-cover rounded-xl border border-white/10">
+    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+      <button data-id="${img.id}" onclick='openImageModal(${JSON.stringify(img)})'
+ class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">
+        Edit
+      </button>
+      <button onclick="deleteImage(${img.id})"
+        class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">
+        Delete
+      </button>
+    </div>
+  </div>`;
+  }
+
+  function emptySlot(text) {
+    return `<p class="text-gray-500">${text}</p>`;
   }
 
   async function loadProduct() {
@@ -307,10 +331,10 @@
 
     const data = await res.json();
     product = data;
-    variants = data.variants || [];
-    images = data.images || [];
+    renderVariants(data.variants || []);
+    renderImages(data.images || []);
     setPreview();
-    renderVariants();
+
   }
 
   document.getElementById("saveBtn").addEventListener("click", async () => {
@@ -320,7 +344,6 @@
       name: document.getElementById("fName").value,
       category: document.getElementById("fCategory").value,
       price: parseFloat(document.getElementById("fPrice").value || 0),
-      image_url: document.getElementById("fImage").value,
       description: document.getElementById("fDescription").value
     };
     const res = await fetch(`/admin/api/products/${productId}`, {
@@ -347,7 +370,7 @@
       alert(data.error || "Failed to delete product");
       return;
     }
-    window.location.href = "/admin/products";
+    window.location.href = "/admin/api/products";
   });
 
   function openVariantModal() {
@@ -358,12 +381,23 @@
   }
   function closeVariantModal() { document.getElementById("variantModal").classList.add("hidden"); }
 
-  function openImageModal() {
-    editingVariantId = null;
-    document.getElementById("imageModalTitle").textContent = "Add Images";
+  function openImageModal(image = null) {
+    editingImageId = image ? image.id : null;
+
+    document.getElementById("imageModalTitle").textContent =
+      editingImageId ? "Edit Image" : "Add Image";
+
     document.getElementById("imageForm").reset();
+
+    if (image) {
+      document.getElementById("iColor").value = image.color;
+      document.getElementById("image").value = image.image_url;
+      document.getElementById("sortOrder").value = image.sort_order || 0;
+    }
+
     document.getElementById("imageModal").classList.remove("hidden");
   }
+
   function closeImageModal() { document.getElementById("imageModal").classList.add("hidden"); }
 
   function editVariant(id) {
@@ -388,30 +422,7 @@
       stock: parseInt(document.getElementById("vStock").value || 0, 10),
       price_override: document.getElementById("vPrice").value ? parseFloat(document.getElementById("vPrice").value) : null
     };
-    const res = await fetch(editingVariantId ? `/admin/variants/${editingVariantId}` : `/admin/products/${productId}/variants`, {
-      method: editingVariantId ? "PUT" : "POST",
-      headers,
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Failed to save variant");
-      return;
-    }
-    closeVariantModal();
-    await loadProduct();
-  });
-
-  document.getElementById("imageForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const headers = authHeaders();
-    if (!headers) return;
-    const body = {
-      color: document.getElementById("iColor").value,
-      img_url: document.getElementById("image").value,
-      sort_order: parseInt(document.getElementById("sortOrder").value || 0, 10)
-    };
-    const res = await fetch(editingVariantId ? `/admin/variants/${editingVariantId}` : `/admin/products/${productId}/variants`, {
+    const res = await fetch(editingVariantId ? `/admin/api/variants/${editingVariantId}` : `/admin/api/products/${productId}/variants`, {
       method: editingVariantId ? "PUT" : "POST",
       headers,
       body: JSON.stringify(body)
@@ -438,40 +449,46 @@
     await loadProduct();
   }
 
-  function loadImages(productId) {
-    fetch(`/admin/api/products/${productId}`)
-      .then(res => res.json())
-      .then(data => {
-        const grid = document.getElementById("imageGrid");
-        grid.innerHTML = "";
+  document.getElementById("imageForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const headers = authHeaders();
+    if (!headers) return;
 
-        data.images.forEach(img => {
-          grid.innerHTML += `
-          <div>
-            <img src="${img.image_url}" width="80">
-            <p>${img.color} • ${img.role}</p>
-            <button onclick="deleteImage(${img.id})">Delete</button>
-          </div>
-        `;
-        });
+    const payload = {
+      color: document.getElementById("iColor").value,
+      image_url: document.getElementById("image").value,
+      role: document.getElementById("iRole").value,
+      sort_order: parseInt(document.getElementById("sortOrder").value || 0)
+    };
+
+    const url = editingImageId
+      ? `/admin/api/images/${editingImageId}`
+      : `/admin/api/products/${productId}/images`;
+
+    const method = editingImageId ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(payload)
       });
-  }
 
-  function addImage() {
-    fetch(`/admin/api/products/${productId}/images`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + localStorage.getItem("admin_token")
-      },
-      body: JSON.stringify({
-        color: imageColor.value,
-        image_url: imageUrl.value,
-        role: imageRole.value,
-        sort_order: parseInt(sortOrder.value)
-      })
-    }).then(() => loadImages(productId));
-  }
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to save image");
+        return;
+      }
+
+      closeImageModal();
+      editingImageId = null;
+      await loadProduct();
+
+    } catch (err) {
+      alert("Network error while saving image");
+    }
+  });
+
 
   function deleteImage(imageId) {
     fetch(`/admin/api/images/${imageId}`, {
@@ -479,7 +496,7 @@
       headers: {
         "Authorization": "Bearer " + localStorage.getItem("admin_token")
       }
-    }).then(() => loadImages(productId));
+    }).then(() => loadProduct());
   }
 
 
