@@ -139,9 +139,8 @@
     let selectedSize = null;
     let selectedVariant = null;
 
-    const variantData = JSON.parse('{{ variants | tojson | safe }}');
     const basePrice = Number('{{ product.price | tojson | safe }}');
-    console.log("Variant Data:", variantData);
+    console.log("Variant Data:", COLOR_DATA);
 
     const statusEl = document.getElementById("variantStatus");
     const priceEl = document.getElementById("variantPrice");
@@ -156,8 +155,10 @@
         document.querySelectorAll("[id^='color-']")
             .forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
 
-        document.getElementById("color-" + color)
-            .classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+        const btn = document.getElementById("color-" + color);
+        if (btn) {
+            btn.classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+        }
 
         renderImagesForColor(color);
         updateVariantState();
@@ -200,13 +201,16 @@
     }
 
     function findVariant() {
-        for (let v of variantData) {
-            if (v.color === selectedColor && v.size === selectedSize) {
-                return v;
-            }
-        }
-        return null;
+        if (!selectedColor || !selectedSize) return null;
+
+        const colorBlock = COLOR_DATA[selectedColor];
+        if (!colorBlock) return null;
+
+        return colorBlock.sizes.find(
+            v => v.size === selectedSize
+        ) || null;
     }
+
 
     function updateVariantState() {
         selectedVariant = findVariant();
@@ -304,7 +308,7 @@
                 },
                 body: JSON.stringify({
                     product_name: "{{ product.name }}",
-                    variant_id: variant.id,
+                    variant_id: variant.variant_id,
                     quantity: quantity
                 })
             });
@@ -353,7 +357,7 @@
         const colors = Object.keys(COLOR_DATA);
         if (colors.length) {
             selectColor(colors[0]);
-        }
+        }   
     });
 
 </script>

@@ -49,7 +49,6 @@ def product_page(product_id):
 
     variants = Product_Variants.query.filter_by(product_id=product_id).all()
 
-    # Group variants by color
     color_map = {}
 
     for v in variants:
@@ -60,7 +59,13 @@ def product_page(product_id):
             ).order_by(Product_Variant_Images.sort_order.asc()).all()
 
             color_map[v.color] = {
-                "images": [img.image_url for img in images],
+                "images": [
+                    {
+                        "image_url": img.image_url,
+                        "role": img.role
+                    }
+                    for img in images
+                ],
                 "sizes": []
             }
 
@@ -68,8 +73,11 @@ def product_page(product_id):
             "variant_id": v.id,
             "size": v.size,
             "stock": v.stock,
-            "price_override": v.price_override
+            "price_override": float(v.price_override) if v.price_override else None
         })
+
+    colors = list(color_map.keys())
+    sizes = sorted({v.size for v in variants})
 
     similar = Product.query.filter(
         Product.category == product.category,
@@ -80,6 +88,8 @@ def product_page(product_id):
         "product.html",
         product=product,
         color_data=color_map,
+        colors=colors,
+        sizes=sizes,
         similar=similar
     )
 
@@ -215,7 +225,26 @@ def login_user():
         if res.session:
             return jsonify({
                 "message": "Login successful",
-                "access_token": res.session.access_token
+                "access_token": res.session.access_token,
+                "next": "home"
+            })
+    except Exception as e:
+        return jsonify({"error": "Invalid Credentials"}), 401
+    
+
+@bp.route("/login/<string:target>", methods=["POST"])
+def login_user_target(target):
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+    try:
+        supabase = get_supabase()
+        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        if res.session:
+            return jsonify({
+                "message": "Login successful",
+                "access_token": res.session.access_token,
+                "next": target
             })
     except Exception as e:
         return jsonify({"error": "Invalid Credentials"}), 401
@@ -436,14 +465,21 @@ def clear_cart():
 @bp.route("/orders", methods=["GET"])
 @require_auth
 def list_orders():
-    orders = Order.query.filter_by(user_id=g.user.id).order_by(Order.created_at.desc()).all()
+    orders = (
+        Order.query
+        .filter_by(user_id=g.user.id)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+
     data = []
+
     for order in orders:
         data.append({
             "id": order.id,
             "status": order.status,
             "total": str(order.total_amount),
-            "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+            "created_at": order.created_at.isoformat(),
             "items": [
                 {
                     "product": item.product.name,
@@ -451,10 +487,13 @@ def list_orders():
                     "variant_size": item.variant.size if item.variant else None,
                     "quantity": item.quantity,
                     "subtotal": str(item.subtotal)
-                } for item in order.itemsx
+                }
+                for item in order.items   # ✅ FIXED HERE
             ]
         })
+
     return jsonify({"orders": data})
+
 
 # -----------------------------
 # ----POST: Create order
@@ -578,8 +617,12 @@ def cart_page():
 # LOGIN PAGE RENDERING
 # -----------------------------
 @bp.route('/login-page')
-def admin_ops():
+def login_page():
     return render_template('login.html')
+
+@bp.route('/login-page/<string:targetLocation>')
+def login_page_target(targetLocation):
+    return render_template('login.html', targetLocation=targetLocation)
 
 # -----------------------------
 # REGISTER PAGE RENDERING

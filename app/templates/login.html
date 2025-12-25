@@ -100,6 +100,7 @@
 
 {% block scripts %}
 <script>
+  const mytargetLocation = "{{ targetLocation if targetLocation else 'home' }}";
   const loginForm = document.getElementById("loginForm");
   const messageEl = document.getElementById("msg");
 
@@ -122,7 +123,7 @@
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const res = await fetch("/login", {
+    const res = await fetch(`/login/${mytargetLocation}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -132,10 +133,13 @@
     });
 
     const data = await res.json();
+    console.log(data.next);
+
 
     if (data.access_token) {
       localStorage.setItem("access_token", data.access_token);
-      window.location.href = "/home";
+      console.log(data.target);
+      window.location.href = "/" + data.next;
     } else {
       messageEl.innerText = data.error || "Login failed";
     }

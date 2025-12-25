@@ -110,7 +110,7 @@
         async function goProtected(path) {
             const token = localStorage.getItem("access_token");
             if (!token) {
-                window.location.href = "/login-page";
+                window.location.href = `/login-page/${path}`;
                 return;
             }
 
@@ -127,7 +127,7 @@
                     // Token is invalid or expired
                     if (res.status === 401) {
                         localStorage.removeItem("access_token");
-                        window.location.href = "/login-page";
+                        window.location.href = `/login-page/${path}`;
                         return;
                     }
                 }
@@ -138,7 +138,8 @@
                 // Network error or other issue
                 console.error("Token validation failed:", error);
                 localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
+                window.location.href = `/login-page/${path}`;
+
             }
         }
 

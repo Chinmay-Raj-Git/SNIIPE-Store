@@ -298,18 +298,50 @@ def admin_get_variants(id):
 def admin_add_variant(id):
     data = request.json
 
-    variant = Product_Variants(
-        product_id=id,
-        color=data.get("color"),
-        size=data.get("size"),
-        stock=data.get("stock", 0),
-        price_override=data.get("price_override")
-    )
+    color = data.get("color")
+    stock = data.get("stock", 0)
+    price_override = data.get("price_override")
 
-    db.session.add(variant)
+    if not color:
+        return jsonify({"error": "Color is required"}), 400
+
+    created = []
+
+    # BULK MODE
+    if data.get("sizes"):
+        for size in data["sizes"]:
+            variant = Product_Variants(
+                product_id=id,
+                color=color,
+                size=size,
+                stock=stock,
+                price_override=price_override
+            )
+            db.session.add(variant)
+            created.append(size)
+
+    # SINGLE MODE (fallback)
+    else:
+        if not data.get("size"):
+            return jsonify({"error": "Size is required"}), 400
+
+        variant = Product_Variants(
+            product_id=id,
+            color=color,
+            size=data.get("size"),
+            stock=stock,
+            price_override=price_override
+        )
+        db.session.add(variant)
+        created.append(data.get("size"))
+
     db.session.commit()
 
-    return jsonify({"message": "Variant added", "id": variant.id}), 201
+    return jsonify({
+        "message": "Variants added",
+        "sizes": created
+    }), 201
+
 
 
 

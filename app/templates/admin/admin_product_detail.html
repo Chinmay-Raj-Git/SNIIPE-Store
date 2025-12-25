@@ -139,9 +139,25 @@
       </div>
       <div>
         <label class="text-sm text-gray-300">Size</label>
-        <input id="vSize" required
+        <input id="vSize" placeholder="Single size (optional)"
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
+
+      <div class="mt-2">
+        <label class="text-sm text-gray-300">Bulk Sizes</label>
+        <div class="grid grid-cols-4 gap-2 mt-2 text-sm">
+          {% for s in ["XS","S","M","L","XL","XXL"] %}
+          <label class="flex items-center gap-2 bg-black/40 p-2 rounded-lg border border-white/10 cursor-pointer">
+            <input type="checkbox" class="bulk-size" value="{{ s }}">
+            {{ s }}
+          </label>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+          If selected, variants will be created for all checked sizes.
+        </p>
+      </div>
+
       <div>
         <label class="text-sm text-gray-300">Stock</label>
         <input id="vStock" type="number" min="0" required
@@ -174,15 +190,9 @@
     <form id="imageForm" class="space-y-4">
       <div>
         <label class="text-sm text-gray-300">Color</label>
-        <select id="iColor" required
-          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none appearance-none">
-          <option selected
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            value="">Select a Color Variant</option>
-          <option
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            value="Black">Black</option>
+        <select id="iColor" required class="w-full p-3 rounded-xl bg-black/60 border border-white/10">
         </select>
+
       </div>
       <div>
         <label class="text-sm text-gray-300">Image URL</label>
@@ -254,7 +264,7 @@
     document.getElementById("fDescription").value = product?.description || "";
   }
 
-  function renderVariants() {
+  function renderVariants(variants) {
     const tbody = document.getElementById("variantsTable");
     if (!variants.length) {
       tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No variants yet.</td></tr>`;
@@ -331,7 +341,9 @@
 
     const data = await res.json();
     product = data;
+    variants = data.variants || [];
     renderVariants(data.variants || []);
+    populateImageColorDropdown();
     renderImages(data.images || []);
     setPreview();
 
@@ -357,6 +369,8 @@
       return;
     }
     await loadProduct();
+    populateImageColorDropdown();
+
     alert("Product updated");
   });
 
@@ -382,6 +396,11 @@
   function closeVariantModal() { document.getElementById("variantModal").classList.add("hidden"); }
 
   function openImageModal(image = null) {
+    if (!variants.length) {
+      alert("Add at least one variant before adding images.");
+      return;
+    }
+
     editingImageId = image ? image.id : null;
 
     document.getElementById("imageModalTitle").textContent =
@@ -416,12 +435,19 @@
     e.preventDefault();
     const headers = authHeaders();
     if (!headers) return;
+    const selectedSizes = [...document.querySelectorAll(".bulk-size:checked")]
+      .map(cb => cb.value);
+
     const body = {
       color: document.getElementById("vColor").value,
-      size: document.getElementById("vSize").value,
+      size: document.getElementById("vSize").value || null,
+      sizes: selectedSizes.length ? selectedSizes : null,
       stock: parseInt(document.getElementById("vStock").value || 0, 10),
-      price_override: document.getElementById("vPrice").value ? parseFloat(document.getElementById("vPrice").value) : null
+      price_override: document.getElementById("vPrice").value
+        ? parseFloat(document.getElementById("vPrice").value)
+        : null
     };
+
     const res = await fetch(editingVariantId ? `/admin/api/variants/${editingVariantId}` : `/admin/api/products/${productId}/variants`, {
       method: editingVariantId ? "PUT" : "POST",
       headers,
@@ -434,7 +460,32 @@
     }
     closeVariantModal();
     await loadProduct();
+    populateImageColorDropdown();
+
   });
+
+  function populateImageColorDropdown() {
+    const dropdown = document.getElementById("iColor");
+    if (!dropdown) return;
+
+    // Extract unique colors from variants
+    const colors = [...new Set(variants.map(v => v.color))];
+
+    dropdown.innerHTML = "";
+
+    if (!colors.length) {
+      dropdown.innerHTML = `<option disabled selected>No colors available</option>`;
+      return;
+    }
+
+    colors.forEach(color => {
+      const opt = document.createElement("option");
+      opt.value = color;
+      opt.textContent = color;
+      dropdown.appendChild(opt);
+    });
+  }
+
 
   async function deleteVariant(id) {
     const headers = authHeaders();
@@ -447,6 +498,8 @@
       return;
     }
     await loadProduct();
+    populateImageColorDropdown();
+
   }
 
   document.getElementById("imageForm").addEventListener("submit", async (e) => {
@@ -483,6 +536,8 @@
       closeImageModal();
       editingImageId = null;
       await loadProduct();
+      populateImageColorDropdown();
+
 
     } catch (err) {
       alert("Network error while saving image");
