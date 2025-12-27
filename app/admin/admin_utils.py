@@ -3,6 +3,7 @@ from flask import request, jsonify, g
 from app import get_supabase
 from ..models import Users
 from .. import db
+from ..auth_utils import _validate_token_and_get_user
 
 ADMIN_EMAILS = [
     "ychinmayraj06@gmail.com",
@@ -18,36 +19,17 @@ def require_admin(f):
             return jsonify({"error": "Missing or invalid token"}), 401
 
         token = auth_header.split("Bearer ")[1].strip()
-        supabase = get_supabase()
+        user, error = _validate_token_and_get_user(token)
+        
+        if error:
+            return jsonify({"error": error}), 401
 
-        try:
-            res = supabase.auth.get_user(token)
-            user_info = res.user
+        # Check if user is admin
+        if user.email not in ADMIN_EMAILS:
+            return jsonify({"error": "Admin access only"}), 403
 
-            if not user_info or not user_info.email:
-                return jsonify({"error": "Invalid token"}), 401
-
-            # Not an admin
-            if user_info.email not in ADMIN_EMAILS:
-                return jsonify({"error": "Admin access only"}), 403
-
-            # Ensure user exists locally in DB
-            user = Users.query.get(user_info.id)
-            if not user:
-                user = Users(
-                    id=user_info.id,
-                    email=user_info.email,
-                    name=None,
-                    created_at=user_info.created_at
-                )
-                db.session.add(user)
-                db.session.commit()
-
-            g.admin = user
-
-        except Exception as e:
-            return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
-
+        # Attach admin user to flask global context
+        g.admin = user
         return f(*args, **kwargs)
 
     return decorated

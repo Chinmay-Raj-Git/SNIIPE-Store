@@ -43,9 +43,38 @@
 
     // Load Products from backend
     async function loadProducts() {
-        const res = await fetch("/products");
-        allProducts = await res.json();
-        displayProducts(allProducts);
+        const container = document.getElementById("productsList");
+        
+        // Show loading state
+        container.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <p class="text-gray-400 mt-4">Loading products...</p>
+            </div>
+        `;
+
+        try {
+            const res = await fetch("/products");
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            allProducts = await res.json();
+            displayProducts(allProducts);
+        } catch (error) {
+            console.error("Failed to load products:", error);
+            container.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <div class="bg-red-500/10 border border-red-500/30 p-6 rounded-xl max-w-md mx-auto">
+                        <p class="text-red-400 mb-4">Failed to load products</p>
+                        <button onclick="loadProducts()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     // Display products on screen

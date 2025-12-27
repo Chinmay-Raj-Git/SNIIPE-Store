@@ -9,8 +9,11 @@
         <!-- LEFT SIDE: IMAGES -->
         <div>
             <!-- MAIN IMAGE -->
-            <img id="mainImage" src="/static/img/placeholder.webp" alt="{{ product.name }}"
-                class="w-full h-[350px] object-cover rounded-lg shadow-lg transition duration-300">
+            <div
+                class="w-full aspect-video bg-white rounded-lg shadow-lg flex items-center justify-center overflow-hidden">
+                <img id="mainImage" src="/static/img/placeholder.webp" alt="{{ product.name }}"
+                    class="w-full h-full object-contain transition-transform duration-300 hover:scale-105">
+            </div>
 
             <!-- THUMBNAILS -->
             <div id="thumbnailStrip" class="flex gap-3 mt-4"></div>
@@ -98,10 +101,80 @@
             </div>
 
             <!-- SIZE CHART -->
-            <details class="mt-8 bg-gray-900/60 border border-white/5 p-4 rounded-lg">
-                <summary class="cursor-pointer text-lg font-semibold">Size Chart</summary>
-                <p class="mt-3 text-gray-300">Add your size chart here.</p>
+            <details class="mt-8 bg-purple-600/20 border border-white/10 rounded-xl overflow-hidden">
+                <summary
+                    class="cursor-pointer text-lg font-semibold px-5 py-4 flex items-center justify-between hover:bg-white/5 transition">
+                    <span>Size Chart</span>
+                    <span class="text-purple-400 text-sm">Tap to view</span>
+                </summary>
+
+                <div class="px-5 py-6 border-t border-white/10">
+
+                    <p class="text-gray-400 text-sm mb-4">
+                        All measurements are in centimeters (cm). Sizes may vary slightly by style.
+                    </p>
+
+                    <!-- TABLE -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border border-white/10 rounded-lg overflow-hidden">
+                            <thead class="bg-purple-400/60">
+                                <tr>
+                                    <th class="px-4 py-3 text-left border-b border-white/10">Size</th>
+                                    <th class="px-4 py-3 text-left border-b border-white/10">Chest</th>
+                                    <th class="px-4 py-3 text-left border-b border-white/10">Length</th>
+                                    <th class="px-4 py-3 text-left border-b border-white/10">Shoulder</th>
+                                    <th class="px-4 py-3 text-left border-b border-white/10">Sleeve</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="bg-black/40">
+                                <tr class="hover:bg-white/5 transition">
+                                    <td class="px-4 py-3">S</td>
+                                    <td class="px-4 py-3">96</td>
+                                    <td class="px-4 py-3">66</td>
+                                    <td class="px-4 py-3">42</td>
+                                    <td class="px-4 py-3">60</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition">
+                                    <td class="px-4 py-3">M</td>
+                                    <td class="px-4 py-3">102</td>
+                                    <td class="px-4 py-3">69</td>
+                                    <td class="px-4 py-3">44</td>
+                                    <td class="px-4 py-3">61</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition">
+                                    <td class="px-4 py-3">L</td>
+                                    <td class="px-4 py-3">108</td>
+                                    <td class="px-4 py-3">72</td>
+                                    <td class="px-4 py-3">46</td>
+                                    <td class="px-4 py-3">62</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition">
+                                    <td class="px-4 py-3">XL</td>
+                                    <td class="px-4 py-3">114</td>
+                                    <td class="px-4 py-3">75</td>
+                                    <td class="px-4 py-3">48</td>
+                                    <td class="px-4 py-3">63</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition">
+                                    <td class="px-4 py-3">XXL</td>
+                                    <td class="px-4 py-3">120</td>
+                                    <td class="px-4 py-3">78</td>
+                                    <td class="px-4 py-3">50</td>
+                                    <td class="px-4 py-3">64</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NOTE -->
+                    <p class="text-gray-500 text-xs mt-4">
+                        Tip: For a relaxed streetwear fit, consider sizing up.
+                    </p>
+
+                </div>
             </details>
+
 
         </div>
     </div>
@@ -109,8 +182,8 @@
     <!-- SIMILAR PRODUCTS -->
     <h2 class="text-2xl font-bold mt-16 mb-4">Similar Products</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {% if similar %}
-        {% for item in similar %}
+        {% if similar_products %}
+        {% for item in similar_products %}
         <a href="/product/{{ item.id }}"
             class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
             <div class="overflow-hidden">
@@ -133,13 +206,14 @@
 
 <!-- JS -->
 <script>
-    const COLOR_DATA = {{ color_data | tojson | safe }};
+    const COLOR_DATA = JSON.parse('{{ color_data | tojson | safe }}') || {};
+
 
     let selectedColor = null;
     let selectedSize = null;
     let selectedVariant = null;
 
-    const basePrice = Number('{{ product.price | tojson | safe }}');
+    const basePrice = parseFloat('{{ product.price }}');
     console.log("Variant Data:", COLOR_DATA);
 
     const statusEl = document.getElementById("variantStatus");
@@ -181,7 +255,7 @@
             data.images.map(img => `
             <img src="${img.image_url}"
                  onclick="document.getElementById('mainImage').src='${img.image_url}'"
-                 class="w-20 h-20 object-cover rounded-md cursor-pointer border border-white/10 hover:border-purple-500 transition">
+                 class="w-20 h-20 object-contain bg-white rounded-md cursor-pointer border border-white/10 hover:border-purple-500 transition">
         `).join("");
     }
 
@@ -273,31 +347,38 @@
 
     async function addToCart() {
         const token = localStorage.getItem("access_token");
-        if (!token) return alert("Please login first!");
+        if (!token) {
+            SNIPE.goProtected("/cart-page");
+            return;
+        }
 
         const variant = findVariant();
 
         if (!variant) {
-            actionMessage.innerText = "Please select a color and size.";
+            SNIPE.showError("Please select a color and size.", "actionMessage");
             return;
         }
 
         if (variant.stock <= 0) {
-            actionMessage.innerText = "Selected variant is out of stock.";
+            SNIPE.showError("Selected variant is out of stock.", "actionMessage");
             return;
         }
 
         const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
 
         if (quantity <= 0) {
-            actionMessage.innerText = "Quantity is invalid.";
+            SNIPE.showError("Quantity is invalid.", "actionMessage");
             return;
         }
 
         if (quantity > variant.stock) {
-            actionMessage.innerText = "Not enough stock.";
+            SNIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
             return;
         }
+
+        // Show loading state
+        SNIPE.showLoading(addBtn, "Adding...");
+        SNIPE.showLoading(buyBtn, "Adding...");
 
         try {
             const res = await fetch("/cart/add", {
@@ -307,7 +388,7 @@
                     "Authorization": "Bearer " + token
                 },
                 body: JSON.stringify({
-                    product_name: "{{ product.name }}",
+                    product_id: "{{ product.id }}",
                     variant_id: variant.variant_id,
                     quantity: quantity
                 })
@@ -318,30 +399,32 @@
             if (!res.ok) {
                 // Handle error responses
                 if (res.status === 401) {
-                    actionMessage.innerText = "Session expired. Please login again.";
-                    actionMessage.classList.remove("text-purple-400");
-                    actionMessage.classList.add("text-red-400");
-                    // Clear invalid token and redirect after a delay
+                    SNIPE.showError("Session expired. Please login again.", "actionMessage");
                     setTimeout(() => {
                         localStorage.removeItem("access_token");
                         window.location.href = "/login-page";
                     }, 2000);
+                } else if (res.status === 400) {
+                    SNIPE.showError(data.error || "Invalid request.", "actionMessage");
                 } else {
-                    actionMessage.innerText = data.error || "Failed to add item to cart.";
-                    actionMessage.classList.remove("text-purple-400");
-                    actionMessage.classList.add("text-red-400");
+                    SNIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
                 }
                 return;
             }
 
             // Success case
-            actionMessage.innerText = data.message || "Added " + quantity + " item(s) to cart.";
-            actionMessage.classList.remove("text-red-400");
-            actionMessage.classList.add("text-purple-400");
+            SNIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+
+            // Update stock display
+            selectedVariant.stock -= quantity;
+            updateVariantState();
+
         } catch (error) {
-            actionMessage.innerText = "Network error. Please try again.";
-            actionMessage.classList.remove("text-purple-400");
-            actionMessage.classList.add("text-red-400");
+            console.error("Add to cart error:", error);
+            SNIPE.showError("Network error. Please try again.", "actionMessage");
+        } finally {
+            SNIPE.hideLoading(addBtn);
+            SNIPE.hideLoading(buyBtn);
         }
     }
 
@@ -357,7 +440,7 @@
         const colors = Object.keys(COLOR_DATA);
         if (colors.length) {
             selectColor(colors[0]);
-        }   
+        }
     });
 
 </script>

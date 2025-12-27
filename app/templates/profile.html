@@ -127,16 +127,26 @@ document.getElementById("profileForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("access_token");
     if (!token) {
-        window.location.href = "/login-page";
+        SNIPE.goProtected("/profile");
         return;
     }
 
-    const msgEl = document.getElementById("msg");
     const submitBtn = e.target.querySelector("button[type='submit']");
-    const originalText = submitBtn.textContent;
+    const name = document.getElementById("name").value.trim();
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Saving...";
+    // Client-side validation
+    if (!name) {
+        SNIPE.showError("Name cannot be empty.", "msg");
+        return;
+    }
+
+    if (name.length < 2) {
+        SNIPE.showError("Name must be at least 2 characters long.", "msg");
+        return;
+    }
+
+    // Show loading state
+    SNIPE.showLoading(submitBtn, "Saving...");
 
     try {
         const res = await fetch("/profile/me", {
@@ -145,42 +155,42 @@ document.getElementById("profileForm").addEventListener("submit", async (e) => {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
             },
-            body: JSON.stringify({ name: document.getElementById("name").value })
+            body: JSON.stringify({ name: name })
         });
 
         const data = await res.json();
 
         if (!res.ok) {
             if (res.status === 401) {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
+                SNIPE.showError("Session expired. Please login again.", "msg");
+                setTimeout(() => {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "/login-page";
+                }, 2000);
                 return;
+            } else if (res.status === 400) {
+                SNIPE.showError(data.error || "Invalid input.", "msg");
+            } else {
+                SNIPE.showError(data.error || "Failed to update profile.", "msg");
             }
-            msgEl.innerText = data.error || "Failed to update profile.";
-            msgEl.classList.remove("text-purple-400");
-            msgEl.classList.add("text-red-400");
             return;
         }
 
-        msgEl.innerText = data.message || "Profile updated successfully!";
-        msgEl.classList.remove("text-red-400");
-        msgEl.classList.add("text-purple-400");
+        SNIPE.showSuccess(data.message || "Profile updated successfully!", "msg");
         
         // Update user initial
-        const newName = document.getElementById("name").value;
-        if (newName) {
-            document.getElementById("user-initial").textContent = newName.charAt(0).toUpperCase();
+        if (name) {
+            document.getElementById("user-initial").textContent = name.charAt(0).toUpperCase();
         }
         
         // Reload profile to update display
-        loadProfile();
+        setTimeout(() => loadProfile(), 1000);
+        
     } catch (error) {
-        msgEl.innerText = "Network error. Please try again.";
-        msgEl.classList.remove("text-purple-400");
-        msgEl.classList.add("text-red-400");
+        console.error("Profile update error:", error);
+        SNIPE.showError("Network error. Please try again.", "msg");
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
+        SNIPE.hideLoading(submitBtn);
     }
 });
 

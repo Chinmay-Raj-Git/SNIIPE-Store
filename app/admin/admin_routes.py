@@ -167,10 +167,23 @@ def admin_create_product():
         if not data.get("name") or not data.get("price"):
             return jsonify({"error": "Name and price are required"}), 400
 
+        # Check for duplicate product name
+        existing = Product.query.filter_by(name=data.get("name")).first()
+        if existing:
+            return jsonify({"error": "Product with this name already exists"}), 409
+
+        # Validate price
+        try:
+            price = float(data.get("price"))
+            if price < 0:
+                return jsonify({"error": "Price cannot be negative"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid price format"}), 400
+
         product = Product(
             name=data.get("name"),
             description=data.get("description"),
-            price=data.get("price"),
+            price=price,
             category=data.get("category")
         )
 
@@ -180,7 +193,7 @@ def admin_create_product():
         return jsonify({"message": "Product created", "id": product.id}), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to create product: {str(e)}"}), 500
 
 
 @admin_bp.route("/api/products/<int:id>/duplicate", methods=["POST"])
@@ -296,51 +309,77 @@ def admin_get_variants(id):
 @admin_bp.route("/api/products/<int:id>/variants", methods=["POST"])
 @require_admin
 def admin_add_variant(id):
-    data = request.json
+    try:
+        # Verify product exists
+        product = Product.query.get(id)
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
 
-    color = data.get("color")
-    stock = data.get("stock", 0)
-    price_override = data.get("price_override")
+        data = request.json
+        color = data.get("color")
+        stock = data.get("stock", 0)
+        price_override = data.get("price_override")
 
-    if not color:
-        return jsonify({"error": "Color is required"}), 400
+        if not color:
+            return jsonify({"error": "Color is required"}), 400
+        
+        if stock < 0:
+            return jsonify({"error": "Stock cannot be negative"}), 400
 
-    created = []
+        created = []
 
-    # BULK MODE
-    if data.get("sizes"):
-        for size in data["sizes"]:
+        # BULK MODE
+        if data.get("sizes"):
+            for size in data["sizes"]:
+                # Check for duplicate variant
+                existing = Product_Variants.query.filter_by(
+                    product_id=id, color=color, size=size
+                ).first()
+                if existing:
+                    continue  # Skip duplicates
+                
+                variant = Product_Variants(
+                    product_id=id,
+                    color=color,
+                    size=size,
+                    stock=stock,
+                    price_override=price_override
+                )
+                db.session.add(variant)
+                created.append(size)
+
+        # SINGLE MODE (fallback)
+        else:
+            if not data.get("size"):
+                return jsonify({"error": "Size is required"}), 400
+
+            # Check for duplicate variant
+            existing = Product_Variants.query.filter_by(
+                product_id=id, color=color, size=data.get("size")
+            ).first()
+            if existing:
+                return jsonify({"error": "Variant already exists"}), 409
+
             variant = Product_Variants(
                 product_id=id,
                 color=color,
-                size=size,
+                size=data.get("size"),
                 stock=stock,
                 price_override=price_override
             )
             db.session.add(variant)
-            created.append(size)
+            created.append(data.get("size"))
 
-    # SINGLE MODE (fallback)
-    else:
-        if not data.get("size"):
-            return jsonify({"error": "Size is required"}), 400
+        db.session.commit()
 
-        variant = Product_Variants(
-            product_id=id,
-            color=color,
-            size=data.get("size"),
-            stock=stock,
-            price_override=price_override
-        )
-        db.session.add(variant)
-        created.append(data.get("size"))
-
-    db.session.commit()
-
-    return jsonify({
-        "message": "Variants added",
-        "sizes": created
-    }), 201
+        return jsonify({
+            "message": "Variants added",
+            "sizes": created
+        }), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to add variants: {str(e)}"}), 500
 
 
 
@@ -348,20 +387,29 @@ def admin_add_variant(id):
 @admin_bp.route("/api/variants/<int:vid>", methods=["PUT"])
 @require_admin
 def admin_update_variant(vid):
-    data = request.json
-    variant = Product_Variants.query.get_or_404(vid)
+    try:
+        data = request.json
+        variant = Product_Variants.query.get_or_404(vid)
 
-    if data.get("color") is not None:
-        variant.color = data["color"]
-    if data.get("size") is not None:
-        variant.size = data["size"]
-    if data.get("stock") is not None:
-        variant.stock = data["stock"]
-    if data.get("price_override") is not None:
-        variant.price_override = data["price_override"]
+        if data.get("color") is not None:
+            variant.color = data["color"]
+        if data.get("size") is not None:
+            variant.size = data["size"]
+        if data.get("stock") is not None:
+            if data["stock"] < 0:
+                return jsonify({"error": "Stock cannot be negative"}), 400
+            variant.stock = data["stock"]
+        if data.get("price_override") is not None:
+            if data["price_override"] < 0:
+                return jsonify({"error": "Price override cannot be negative"}), 400
+            variant.price_override = data["price_override"]
 
-    db.session.commit()
-    return jsonify({"message": "Variant updated"})
+        db.session.commit()
+        return jsonify({"message": "Variant updated"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update variant: {str(e)}"}), 500
 
 
 

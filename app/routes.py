@@ -79,10 +79,25 @@ def product_page(product_id):
     colors = list(color_map.keys())
     sizes = sorted({v.size for v in variants})
 
-    similar = Product.query.filter(
+    similar_products = Product.query.filter(
         Product.category == product.category,
         Product.id != product_id
     ).limit(4)
+    
+    similar_products_data = []
+    for p in similar_products:
+        thumbnail = Product_Variant_Images.query.filter_by(
+            product_id=p.id,
+            role="thumbnail"
+        ).order_by(Product_Variant_Images.sort_order.asc()).first()
+
+        similar_products_data.append({
+            "id": p.id,
+            "name": p.name,
+            "price": p.price,
+            "category": p.category,
+            "thumbnail": thumbnail.image_url if thumbnail else None
+        })    
 
     return render_template(
         "product.html",
@@ -90,8 +105,9 @@ def product_page(product_id):
         color_data=color_map,
         colors=colors,
         sizes=sizes,
-        similar=similar
+        similar_products=similar_products_data
     )
+
 
 
 # -----------------------------
@@ -231,7 +247,6 @@ def login_user():
     except Exception as e:
         return jsonify({"error": "Invalid Credentials"}), 401
     
-
 @bp.route("/login/<string:target>", methods=["POST"])
 def login_user_target(target):
     data = request.json
@@ -249,6 +264,7 @@ def login_user_target(target):
     except Exception as e:
         return jsonify({"error": "Invalid Credentials"}), 401
     
+    
 # -----------------------------
 # ----GET: Verified or not
 # -----------------------------
@@ -263,6 +279,25 @@ def check_verification():
         return jsonify({"verified": False})
     except:
         return jsonify({"verified": False})
+
+
+# -----------------------------
+# ----POST: Forgot Password
+# -----------------------------
+@bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.json
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+
+    try:
+        supabase = get_supabase()
+        supabase.auth.reset_password_email(email)
+        return jsonify({"message": "Password reset email sent"})
+    except Exception:
+        return jsonify({"error": "Failed to send reset email"}), 500
 
 
 # ----------------------------------------------------------
@@ -348,10 +383,15 @@ def get_cart():
 @require_auth
 def add_to_cart():
     data = request.json
-    product_name = data.get("product_name")
-    product_id = Product.query.filter_by(name=product_name).first().id
+    product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = data.get("quantity", 1)
+    
+    if not product_id:
+        return jsonify({"error": "Product ID is required"}), 400
+    
+    if quantity < 1:
+        return jsonify({"error": "Quantity must be at least 1"}), 400
 
     user_id = g.user.id
     cart = Cart.query.filter_by(user_id=user_id).first()
@@ -364,12 +404,20 @@ def add_to_cart():
     if not product:
         return jsonify({"error": "Product not found"}), 404
 
-    price = product.price
+    # Validate variant if provided
+    variant = None
     if variant_id:
         variant = Product_Variants.query.get(variant_id)
         if not variant:
             return jsonify({"error": "Variant not found"}), 404
+        if variant.product_id != product.id:
+            return jsonify({"error": "Variant does not belong to this product"}), 400
+        # Check variant stock
+        if variant.stock < quantity:
+            return jsonify({"error": f"Insufficient stock for {product.name} - {variant.color} {variant.size}"}), 400
         price = variant.price_override or product.price
+    else:
+        price = product.price
 
     # Check if already in cart
     existing_item = CartItem.query.filter_by(
@@ -507,18 +555,15 @@ def create_order():
         if not cart or not cart.items:
             return jsonify({"error": "Your cart is empty."}), 400
 
-        # Calculate total
+        # Calculate total and check stock
         total = Decimal("0.00")
         for item in cart.items:
             total += Decimal(item.quantity) * Decimal(item.price_at_time)
-
-        # (Optional) Reduce stock for the variant or product
-        if item.variant:
-            if item.variant.stock >= item.quantity:
-                item.variant.stock -= item.quantity
-            else:
-                # db.session.rollback()
-                return jsonify({"error": f"Insufficient stock for {item.variant.id}"}), 400
+            
+            # Check stock availability
+            if item.variant:
+                if item.variant.stock < item.quantity:
+                    return jsonify({"error": f"Insufficient stock for {item.product.name} - {item.variant.color} {item.variant.size}"}), 400
 
         # Create the order
         new_order = Order(
@@ -530,7 +575,7 @@ def create_order():
         db.session.add(new_order)
         db.session.flush()  # To get the new order ID
 
-        # Create order items
+        # Create order items and reduce stock
         for item in cart.items:
             order_item = OrderItem(
                 order_id=new_order.id,
@@ -541,6 +586,10 @@ def create_order():
                 subtotal=item.quantity * item.price_at_time
             )
             db.session.add(order_item)
+            
+            # Reduce stock for variants
+            if item.variant:
+                item.variant.stock -= item.quantity
 
         # Clear the cart
         CartItem.query.filter_by(cart_id=cart.id).delete()
@@ -630,4 +679,32 @@ def login_page_target(targetLocation):
 @bp.route("/register-page")
 def register_page():
     return render_template("register.html")
+
+# -----------------------------
+# CONTACT PAGE RENDERING
+# -----------------------------
+@bp.route("/contact")
+def contact_page():
+    return render_template("contact.html")
+
+# -----------------------------
+# SUPPORT PAGE RENDERING
+# -----------------------------
+@bp.route("/support")
+def support_page():
+    return render_template("support.html")
+
+# -----------------------------
+# FAQs PAGE RENDERING
+# -----------------------------
+@bp.route("/faq")
+def faq_page():
+    return render_template("faq.html")
+
+# -----------------------------
+# FAQs PAGE RENDERING
+# -----------------------------
+@bp.route("/forgot-password-page")
+def forgot_page():
+    return render_template("forgot_password.html")
 
