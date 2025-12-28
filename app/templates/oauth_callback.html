@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Signing you in…{% endblock %}
+
+{% block content %}
+<section class="flex justify-center items-center min-h-screen">
+  <p class="text-gray-400">Completing login…</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(async () => {
+  try {
+    // USE the global client from base.html
+    const { data, error } = await window.supabaseClient.auth.getSession();
+
+    if (error) throw error;
+    if (!data.session) throw new Error("No session");
+
+    // Store token for Flask auth
+    localStorage.setItem(
+      "access_token",
+      data.session.access_token
+    );
+
+    // Redirect after successful login
+    window.location.href = "/home";
+  } catch (err) {
+    console.error("OAuth callback failed:", err);
+    alert("OAuth login failed");
+    window.location.href = "/login-page";
+  }
+})();
+</script>
+{% endblock %}

@@ -12,6 +12,7 @@ def _validate_token_and_get_user(token):
     
     try:
         res = supabase.auth.get_user(token)
+        ensure_user_exists(res.user)
         user_info = res.user
         if not user_info:
             return None, "Invalid or expired token"
@@ -51,3 +52,16 @@ def require_auth(f):
         return f(*args, **kwargs)
 
     return decorated
+
+def ensure_user_exists(supabase_user):
+    user = Users.query.filter_by(id=supabase_user.id).first()
+
+    if not user:
+        new_user = Users(
+            id=supabase_user.id,
+            email=supabase_user.email,
+            name=supabase_user.user_metadata.get("full_name"),
+        )
+        db.session.add(new_user)
+        db.session.commit()
+

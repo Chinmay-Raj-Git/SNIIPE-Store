@@ -263,8 +263,7 @@ def login_user_target(target):
             })
     except Exception as e:
         return jsonify({"error": "Invalid Credentials"}), 401
-    
-    
+        
 # -----------------------------
 # ----GET: Verified or not
 # -----------------------------
@@ -279,7 +278,6 @@ def check_verification():
         return jsonify({"verified": False})
     except:
         return jsonify({"verified": False})
-
 
 # -----------------------------
 # ----POST: Forgot Password
@@ -298,6 +296,33 @@ def forgot_password():
         return jsonify({"message": "Password reset email sent"})
     except Exception:
         return jsonify({"error": "Failed to send reset email"}), 500
+
+# -----------------------------
+# ----OAUTH Login
+# -----------------------------  
+# @bp.route("/auth/oauth/<provider>")
+# def oauth_login(provider):
+#     supabase = get_supabase()
+
+#     try:
+#         res = supabase.auth.sign_in_with_oauth({
+#             "provider": provider,
+#             "options": {
+#                 "redirect_to": "http://localhost:5000/auth/callback"
+#             }
+#         })
+#         return jsonify({"url": res.url})
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 400
+    
+
+@bp.route("/auth/callback")
+def oauth_callback():
+    return render_template("oauth_callback.html")
+
+
+
+
 
 
 # ----------------------------------------------------------

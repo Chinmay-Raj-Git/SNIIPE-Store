@@ -90,8 +90,18 @@ async function loadProfile() {
         const data = await res.json();
 
         // Set user initial
+        // if (data.profile_picture) {
+        //     const imgElem = document.createElement("img");
+        //     imgElem.src = data.profile_picture;
+        //     imgElem.alt = "Profile Picture";
+        //     imgElem.className = "h-16 w-16 rounded-full object-cover";
+        //     const container = document.querySelector("#user-initial").parentElement;
+        //     container.innerHTML = "";
+        //     container.appendChild(imgElem);
+        // } else {
         const initial = (data.name || data.email || "U").charAt(0).toUpperCase();
         document.getElementById("user-initial").textContent = initial;
+        // }
 
         // Format date
         const joinDate = data.created_at ? new Date(data.created_at).toLocaleDateString('en-US', {
