@@ -1,9 +1,13 @@
-from flask import render_template, request, jsonify, redirect, session, g
+from flask import render_template, request, jsonify, redirect, session, g, send_file
 from . import admin_bp
 from app.models import *
 from app import db
 from .admin_utils import require_admin
 from app import get_supabase
+import pandas as pd
+import io
+from openpyxl import Workbook
+
 
 
 # ───────────────────────────────────────────────
@@ -529,7 +533,9 @@ def admin_orders():
 
 
 
-# ---USERS API---
+# ───────────────────────────────────────────────
+# USERS API
+# ───────────────────────────────────────────────
 @admin_bp.route("/api/users", methods=["GET"])
 @require_admin
 def admin_users():
@@ -543,6 +549,52 @@ def admin_users():
         } for u in users])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ───────────────────────────────────────────────
+# ADMIN EXPORTS API
+# ───────────────────────────────────────────────
+@admin_bp.route("/export", methods=["GET"])
+# @require_admin
+def export_data():
+    export_type = request.args.get("type", "all")
+
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine="openpyxl")
+
+    if export_type in ["users", "all"]:
+        users = Users.query.all()
+        df = pd.DataFrame([{
+            "id": u.id,
+            "email": u.email,
+            "name": u.name,
+            "created_at": u.created_at
+        } for u in users])
+        df.to_excel(writer, sheet_name="users", index=False)
+
+    if export_type in ["orders", "all"]:
+        orders = Order.query.all()
+        df = pd.DataFrame([{
+            "order_id": o.id,
+            "user_email": o.user.email,
+            "status": o.status,
+            "total": o.total_amount,
+            "payment_method": o.payment_method,
+            "created_at": o.created_at
+        } for o in orders])
+        df.to_excel(writer, sheet_name="orders", index=False)
+
+    writer.close()
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="admin_export.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 
 
 # ───────────────────────────────────────────────
