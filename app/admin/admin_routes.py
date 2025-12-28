@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, redirect, session, g, send_file
+from flask import render_template, request, jsonify, redirect, session, g, send_file, make_response
 from . import admin_bp
 from app.models import *
 from app import db
@@ -59,12 +59,22 @@ def admin_auth():
             )
             db.session.add(user)
             db.session.commit()
+            
+        resp = make_response(jsonify({"message": "Logged in"}))
+        resp.set_cookie(
+            "admin_token",
+            res.session.access_token,
+            httponly=True,
+            secure=True,      # required on Render
+            samesite="Lax"
+        )
+        return resp
 
-        return jsonify({
-            "message": "Login successful",
-            "access_token": res.session.access_token,
-            "email": user_info.email
-        })
+        # return jsonify({
+        #     "message": "Login successful",
+        #     "access_token": res.session.access_token,
+        #     "email": user_info.email
+        # })
     except Exception as e:
         return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
 
@@ -561,8 +571,13 @@ def export_data():
 
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine="openpyxl")
+    filename = ""
 
     if export_type in ["users", "all"]:
+        if export_type == "users":
+            filename = "sniipe_users_data.xlsx"
+        else:
+            filename = "sniipe_data_export.xlsx"
         users = Users.query.all()
         df = pd.DataFrame([{
             "id": u.id,
@@ -573,6 +588,8 @@ def export_data():
         df.to_excel(writer, sheet_name="users", index=False)
 
     if export_type in ["orders", "all"]:
+        if filename == "":
+            filename = "sniipe_orders_data.xlsx"
         orders = Order.query.all()
         df = pd.DataFrame([{
             "order_id": o.id,
@@ -590,7 +607,7 @@ def export_data():
     return send_file(
         output,
         as_attachment=True,
-        download_name="admin_export.xlsx",
+        download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 

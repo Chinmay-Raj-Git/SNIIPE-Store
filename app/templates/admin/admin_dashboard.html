@@ -48,32 +48,52 @@
 </div>
 
 <!-- QUICK ACTIONS -->
-<div class="bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-2xl">
-  <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    <a href="/admin/products"
-      class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
-      <div class="text-xl mb-2"><i class="fa-solid fa-cart-plus"></i></div>
-      <div class="text-sm font-medium">Add Product</div>
-    </a>
-    <a href="/admin/orders"
-      class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
-      <div class="text-xl mb-2"><i class="fa-solid fa-box"></i></div>
-      <div class="text-sm font-medium">View Orders</div>
-    </a>
-    <a href="/admin/users"
-      class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
-      <div class="text-xl mb-2"><i class="fa-solid fa-users-gear"></i></div>
-      <div class="text-sm font-medium">User Management</div>
-    </a>
+<div>
+  <!-- ADMIN ACTIONS -->
+  <div class="bg-black/50 border border-white/10 backdrop-blur-xl p-6 my-4 rounded-2xl">
+    <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <a href="/admin/products"
+        class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-cart-plus"></i></div>
+        <div class="text-sm font-medium">Add Product</div>
+      </a>
+      <a href="/admin/orders"
+        class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-box"></i></div>
+        <div class="text-sm font-medium">View Orders</div>
+      </a>
+      <a href="/admin/users"
+        class="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-users-gear"></i></div>
+        <div class="text-sm font-medium">User Management</div>
+      </a>
+    </div>
+
+    <hr class="my-8 border-white/10">
+
+    <!-- EXPORTING ACTIONS -->
+    <h2 class="text-xl font-semibold mb-4">Export Data</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <a onclick="exportData('all')"
+        class="p-4 bg-white/5 hover:bg-white/10 cursor-pointer border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-file-export"></i></div>
+        <div class="text-sm font-medium">Export All</div>
+      </a>
+      <a onclick="exportData('users')"
+        class="p-4 bg-white/5 hover:bg-white/10 cursor-pointer border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-file-export"></i></div>
+        <div class="text-sm font-medium">Export Users</div>
+      </a>
+      <a onclick="exportData('orders')"
+        class="p-4 bg-white/5 hover:bg-white/10 cursor-pointer border border-white/10 rounded-xl transition text-center hover:text-purple-400/90">
+        <div class="text-xl mb-2"><i class="fa-solid fa-file-export"></i></div>
+        <div class="text-sm font-medium">Export Orders</div>
+      </a>
+    </div>
   </div>
 </div>
 
-<div class="space-y-3">
-  <button onclick="exportData('all')" class="admin-btn">Export ALL</button>
-  <button onclick="exportData('users')" class="admin-btn">Export Users</button>
-  <button onclick="exportData('orders')" class="admin-btn">Export Orders</button>
-</div>
 
 <script>
   async function exportData(type) {

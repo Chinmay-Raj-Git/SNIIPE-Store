@@ -13,12 +13,10 @@ ADMIN_EMAILS = [
 def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth_header = request.headers.get("Authorization")
-
-        if not auth_header or not auth_header.startswith("Bearer "):
+        token = request.cookies.get("admin_token")
+        if not token:
             return jsonify({"error": "Missing or invalid token"}), 401
-
-        token = auth_header.split("Bearer ")[1].strip()
+        
         user, error = _validate_token_and_get_user(token)
         
         if error:
