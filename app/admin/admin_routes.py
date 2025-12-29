@@ -7,6 +7,9 @@ from app import get_supabase
 import pandas as pd
 import io
 from openpyxl import Workbook
+from uuid import uuid4
+from werkzeug.utils import secure_filename
+
 
 
 
@@ -446,6 +449,79 @@ def admin_delete_variant(vid):
 # ───────────────────────────────────────────────
 # IMAGES API
 # ───────────────────────────────────────────────
+@admin_bp.route("/api/products/<int:product_id>/images/upload", methods=["POST"])
+@require_admin
+def admin_upload_product_images(product_id):
+    """
+    Upload images for a specific product & color.
+    Handles Supabase upload + DB insert.
+    """
+    color = request.form.get("color")
+    primary_index = request.form.get("primary_index", type=int)
+    thumbnail_index = request.form.get("thumbnail_index", type=int)
+    files = request.files.getlist("images")
+
+    if not color:
+        return jsonify({"error": "Color is required"}), 400
+
+    if not files:
+        return jsonify({"error": "No images provided"}), 400
+
+    supabase = get_supabase()
+
+    uploaded = []
+
+    for idx, file in enumerate(files):
+        filename = secure_filename(file.filename)
+        unique_name = f"{uuid4().hex}_{filename}"
+
+        storage_path = f"product_{product_id}/color_{color}/{unique_name}"
+
+        # Upload to Supabase Storage
+        res = supabase.storage.from_("product-images").upload(
+            storage_path,
+            file.read(),
+            file.content_type
+        )
+
+        if res.get("error"):
+            return jsonify({"error": res["error"]["message"]}), 500
+
+        public_url = supabase.storage.from_("product-images").get_public_url(storage_path)
+
+        # Decide role
+        role = "gallery"
+        if idx == primary_index:
+            role = "primary"
+        elif idx == thumbnail_index:
+            role = "thumbnail"
+
+        # Enforce single primary / thumbnail
+        if role in ("primary", "thumbnail"):
+            Product_Variant_Images.query.filter_by(
+                product_id=product_id,
+                role=role
+            ).update({"role": "gallery"})
+
+        image = Product_Variant_Images(
+            product_id=product_id,
+            color=color,
+            image_url=public_url,
+            role=role,
+            sort_order=idx
+        )
+
+        db.session.add(image)
+        uploaded.append(public_url)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Images uploaded successfully",
+        "uploaded": uploaded
+    }), 201
+
+
 @admin_bp.route("/api/products/<int:product_id>/images", methods=["POST"])
 @require_admin
 def admin_add_product_image(product_id):

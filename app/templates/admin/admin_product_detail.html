@@ -195,34 +195,23 @@
 
       </div>
       <div>
-        <label class="text-sm text-gray-300">Image URL</label>
-        <input id="image" required
-          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
+        <label class="text-sm text-gray-300">Upload Images</label>
+        <input id="imageFiles" type="file" multiple accept="image/*"
+          class="w-full mt-1 p-2 rounded-xl bg-black/60 border border-white/10 text-gray-300" />
       </div>
-      <div>
-        <label class="text-sm text-gray-300">Image Role</label>
-        <select id="iRole" required
-          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none appearance-none">
-          <option
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            selected value="gallery">Select a role</option>
-          <option
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            value="thumbnail">Thumbnail</option>
-          <option
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            value="primary">Primary</option>
-          <option
-            class="appearance-none bg-black border border-white/10 hover:bg-purple-500 focus:border-purple-500 outline-none"
-            value="gallery">Gallery</option>
-        </select>
-      </div>
-      <div>
+
+      <div id="imagePreviewGrid" class="grid grid-cols-3 gap-3 mt-4"></div>
+
+      <p class="text-xs text-gray-400 mt-2">
+        Click an image to mark as <span class="text-purple-300">Primary</span> or
+        <span class="text-blue-300">Thumbnail</span>.
+      </p>
+      <!-- <div>
         <label class="text-sm text-gray-300">Sort Order (Determines placement order of images in the product
           page)</label>
         <input id="sortOrder" type="number" min="0" required
           class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
-      </div>
+      </div> -->
       <div class="flex gap-3 pt-2">
         <button type="submit"
           class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save
@@ -235,11 +224,16 @@
 </div>
 
 <script>
-  const productId = {{ product_id }};
+  const productId = JSON.parse('{{ product_id }}');
   let product = null;
   let variants = [];
   let editingVariantId = null;
   let editingImageId = null;
+
+  let uploadedImages = [];
+  let primaryIndex = null;
+  let thumbnailIndex = null;
+
 
 
   function authHeaders() {
@@ -304,6 +298,37 @@
         : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
   }
 
+  document.getElementById("imageFiles").addEventListener("change", (e) => {
+    const files = Array.from(e.target.files);
+    uploadedImages = files;
+    primaryIndex = null;
+    thumbnailIndex = null;
+    renderImagePreviews();
+  });
+
+  function renderImagePreviews() {
+    const grid = document.getElementById("imagePreviewGrid");
+    grid.innerHTML = "";
+
+    uploadedImages.forEach((file, index) => {
+      const url = URL.createObjectURL(file);
+
+      grid.innerHTML += `
+      <div
+        class="relative cursor-pointer border rounded-xl overflow-hidden group"
+        onclick="toggleImageRole(${index})"
+      >
+        <img src="${url}" class="w-full h-24 object-cover">
+        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-xs gap-1">
+          <span class="text-purple-300">${primaryIndex === index ? "Primary" : ""}</span>
+          <span class="text-blue-300">${thumbnailIndex === index ? "Thumbnail" : ""}</span>
+          <span class="text-gray-300">${(![primaryIndex, thumbnailIndex].includes(index)) ? "Gallery" : ""}</span>
+        </div>
+      </div>
+    `;
+    });
+  }
+
   function imageCard(img) {
     return `
   <div class="relative group">
@@ -320,6 +345,20 @@
     </div>
   </div>`;
   }
+
+  function toggleImageRole(index) {
+    if (primaryIndex === null) {
+      primaryIndex = index;
+    } else if (thumbnailIndex === null && index !== primaryIndex) {
+      thumbnailIndex = index;
+    } else {
+      primaryIndex = index;
+      thumbnailIndex = null;
+    }
+
+    renderImagePreviews();
+  }
+
 
   function emptySlot(text) {
     return `<p class="text-gray-500">${text}</p>`;
@@ -507,42 +546,102 @@
     const headers = authHeaders();
     if (!headers) return;
 
-    const payload = {
-      color: document.getElementById("iColor").value,
-      image_url: document.getElementById("image").value,
-      role: document.getElementById("iRole").value,
-      sort_order: parseInt(document.getElementById("sortOrder").value || 0)
-    };
+    if (!uploadedImages.length) {
+      alert("Upload at least one image");
+      return;
+    }
 
-    const url = editingImageId
-      ? `/admin/api/images/${editingImageId}`
-      : `/admin/api/products/${productId}/images`;
+    if (primaryIndex === null || thumbnailIndex === null) {
+      alert("Select both Primary and Thumbnail images");
+      return;
+    }
 
-    const method = editingImageId ? "PUT" : "POST";
+    const formData = new FormData();
+    formData.append("color", document.getElementById("iColor").value);
+    formData.append("primary_index", primaryIndex);
+    formData.append("thumbnail_index", thumbnailIndex);
+
+    uploadedImages.forEach(file => {
+      formData.append("images", file);
+    });
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch(
+        `/admin/api/products/${productId}/images/upload`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("admin_token")
+          },
+          body: formData
+        }
+      );
+
+      const data = await res.json();
 
       if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to save image");
+        alert(data.error || "Upload failed");
         return;
       }
 
       closeImageModal();
-      editingImageId = null;
+      uploadedImages = [];
+      primaryIndex = null;
+      thumbnailIndex = null;
+
       await loadProduct();
       populateImageColorDropdown();
 
+      alert("Images uploaded successfully ✅");
 
     } catch (err) {
-      alert("Network error while saving image");
+      alert("Network error during image upload");
     }
   });
+
+
+
+  // document.getElementById("imageForm").addEventListener("submit", async (e) => {
+  //   e.preventDefault();
+  //   const headers = authHeaders();
+  //   if (!headers) return;
+
+  //   const payload = {
+  //     color: document.getElementById("iColor").value,
+  //     image_url: document.getElementById("image").value,
+  //     role: document.getElementById("iRole").value,
+  //     sort_order: parseInt(document.getElementById("sortOrder").value || 0)
+  //   };
+
+  //   const url = editingImageId
+  //     ? `/admin/api/images/${editingImageId}`
+  //     : `/admin/api/products/${productId}/images`;
+
+  //   const method = editingImageId ? "PUT" : "POST";
+
+  //   try {
+  //     const res = await fetch(url, {
+  //       method,
+  //       headers,
+  //       body: JSON.stringify(payload)
+  //     });
+
+  //     if (!res.ok) {
+  //       const data = await res.json();
+  //       alert(data.error || "Failed to save image");
+  //       return;
+  //     }
+
+  //     closeImageModal();
+  //     editingImageId = null;
+  //     await loadProduct();
+  //     populateImageColorDropdown();
+
+
+  //   } catch (err) {
+  //     alert("Network error while saving image");
+  //   }
+  // });
 
 
   function deleteImage(imageId) {
