@@ -18,13 +18,14 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev-secret")
     app.config['SUPABASE_URL'] = os.getenv("SUPABASE_URL")
     app.config['SUPABASE_KEY'] = os.getenv("SUPABASE_KEY")
+    app.config['SUPABASE_SERVICE_ROLE_KEY'] = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
     migrate.init_app(app, db)
 
     global _supabase
-    _supabase = create_client(app.config['SUPABASE_URL'], app.config['SUPABASE_KEY'])
+    _supabase = create_client(app.config['SUPABASE_URL'], app.config['SUPABASE_SERVICE_ROLE_KEY'])
 
     # register main routes
     from . import routes

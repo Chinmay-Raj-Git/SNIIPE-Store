@@ -475,19 +475,26 @@ def admin_upload_product_images(product_id):
         filename = secure_filename(file.filename)
         unique_name = f"{uuid4().hex}_{filename}"
 
-        storage_path = f"product_{product_id}/color_{color}/{unique_name}"
+        storage_path = f"product-images/product_{product_id}/color_{color}/{unique_name}"
 
         # Upload to Supabase Storage
-        res = supabase.storage.from_("product-images").upload(
+        res = supabase.storage.from_("images").upload(
             storage_path,
             file.read(),
-            file.content_type
+            {
+                "content-type": file.content_type
+            }
         )
 
-        if res.get("error"):
-            return jsonify({"error": res["error"]["message"]}), 500
 
-        public_url = supabase.storage.from_("product-images").get_public_url(storage_path)
+        if not res:
+            return jsonify({"error": "Upload failed"}), 500
+
+        public_url = supabase.storage.from_("images").get_public_url(storage_path)
+
+        if primary_index == thumbnail_index:
+            return jsonify({"error": "Primary and Thumbnail cannot be the same image"}), 400
+
 
         # Decide role
         role = "gallery"
@@ -496,12 +503,21 @@ def admin_upload_product_images(product_id):
         elif idx == thumbnail_index:
             role = "thumbnail"
 
-        # Enforce single primary / thumbnail
-        if role in ("primary", "thumbnail"):
+        # PRIMARY → one per color
+        if role == "primary":
             Product_Variant_Images.query.filter_by(
                 product_id=product_id,
-                role=role
+                color=color,
+                role="primary"
             ).update({"role": "gallery"})
+
+        # THUMBNAIL → one per product
+        elif role == "thumbnail":
+            Product_Variant_Images.query.filter_by(
+                product_id=product_id,
+                role="thumbnail"
+            ).update({"role": "gallery"})
+
 
         image = Product_Variant_Images(
             product_id=product_id,

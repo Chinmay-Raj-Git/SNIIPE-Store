@@ -108,8 +108,8 @@
 
     <!-- PRIMARY -->
     <div class="mb-6">
-      <h3 class="text-sm text-gray-400 mb-2">Primary Image</h3>
-      <div id="primaryImage"
+      <h3 class="text-sm text-gray-400 mb-2">Primary Images</h3>
+      <div id="primaryImages"
         class="h-40 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
     </div>
 
@@ -203,15 +203,10 @@
       <div id="imagePreviewGrid" class="grid grid-cols-3 gap-3 mt-4"></div>
 
       <p class="text-xs text-gray-400 mt-2">
-        Click an image to mark as <span class="text-purple-300">Primary</span> or
-        <span class="text-blue-300">Thumbnail</span>.
+        Select <span class="text-purple-300">Primary (for this color)</span> and
+        <span class="text-blue-300">Thumbnail (for entire product)</span>.
       </p>
-      <!-- <div>
-        <label class="text-sm text-gray-300">Sort Order (Determines placement order of images in the product
-          page)</label>
-        <input id="sortOrder" type="number" min="0" required
-          class="w-full mt-1 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
-      </div> -->
+
       <div class="flex gap-3 pt-2">
         <button type="submit"
           class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-3 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20">Save
@@ -279,24 +274,56 @@
   }
 
   function renderImages(images) {
-    const primary = images.find(i => i.role === "primary");
-    const thumbnail = images.find(i => i.role === "thumbnail");
-    const gallery = images.filter(i => i.role === "gallery");
+  // PRODUCT-LEVEL THUMBNAIL (one)
+  const thumbnail = images.find(i => i.role === "thumbnail");
 
-    document.getElementById("productImage").src =
-      thumbnail ? thumbnail.image_url : '/static/img/placeholder.webp';
+  // COLOR-LEVEL PRIMARIES (many)
+  const primariesByColor = {};
+  images
+    .filter(i => i.role === "primary")
+    .forEach(img => {
+      primariesByColor[img.color] = img;
+    });
 
-    document.getElementById("primaryImage").innerHTML =
-      primary ? imageCard(primary) : emptySlot("Primary image not set");
+  // GALLERY
+  const gallery = images.filter(i => i.role === "gallery");
 
-    document.getElementById("thumbnailImage").innerHTML =
-      thumbnail ? imageCard(thumbnail) : emptySlot("Thumbnail not set");
+  // Right-side preview image
+  document.getElementById("productImage").src =
+    thumbnail
+      ? thumbnail.image_url
+      : Object.values(primariesByColor)[0]?.image_url
+        || '/static/img/placeholder.webp';
 
-    document.getElementById("galleryGrid").innerHTML =
-      gallery.length
-        ? gallery.map(imageCard).join("")
-        : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
+  // PRIMARY IMAGES (MULTIPLE)
+  const primaryContainer = document.getElementById("primaryImages");
+
+  if (Object.keys(primariesByColor).length) {
+    primaryContainer.innerHTML = Object.entries(primariesByColor)
+      .map(([color, img]) => `
+        <div class="flex flex-col gap-1">
+          <p class="text-xs text-gray-400">${color}</p>
+          ${imageCard(img)}
+        </div>
+      `)
+      .join("");
+  } else {
+    primaryContainer.innerHTML = emptySlot("No primary images set");
   }
+
+  // THUMBNAIL
+  document.getElementById("thumbnailImage").innerHTML =
+    thumbnail
+      ? imageCard(thumbnail)
+      : emptySlot("Thumbnail not set");
+
+  // GALLERY
+  document.getElementById("galleryGrid").innerHTML =
+    gallery.length
+      ? gallery.map(imageCard).join("")
+      : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
+}
+
 
   document.getElementById("imageFiles").addEventListener("change", (e) => {
     const files = Array.from(e.target.files);
@@ -349,15 +376,23 @@
   function toggleImageRole(index) {
     if (primaryIndex === null) {
       primaryIndex = index;
-    } else if (thumbnailIndex === null && index !== primaryIndex) {
+    }
+    else if (thumbnailIndex === null && index !== primaryIndex) {
+      if (productHasThumbnail()) {
+        if (!confirm("This will replace the existing product thumbnail. Continue?")) {
+          return;
+        }
+      }
       thumbnailIndex = index;
-    } else {
+    }
+    else {
       primaryIndex = index;
       thumbnailIndex = null;
     }
 
     renderImagePreviews();
   }
+
 
 
   function emptySlot(text) {
@@ -551,8 +586,8 @@
       return;
     }
 
-    if (primaryIndex === null || thumbnailIndex === null) {
-      alert("Select both Primary and Thumbnail images");
+    if (primaryIndex === null) {
+      alert("Select a Primary image");
       return;
     }
 
@@ -599,49 +634,9 @@
     }
   });
 
-
-
-  // document.getElementById("imageForm").addEventListener("submit", async (e) => {
-  //   e.preventDefault();
-  //   const headers = authHeaders();
-  //   if (!headers) return;
-
-  //   const payload = {
-  //     color: document.getElementById("iColor").value,
-  //     image_url: document.getElementById("image").value,
-  //     role: document.getElementById("iRole").value,
-  //     sort_order: parseInt(document.getElementById("sortOrder").value || 0)
-  //   };
-
-  //   const url = editingImageId
-  //     ? `/admin/api/images/${editingImageId}`
-  //     : `/admin/api/products/${productId}/images`;
-
-  //   const method = editingImageId ? "PUT" : "POST";
-
-  //   try {
-  //     const res = await fetch(url, {
-  //       method,
-  //       headers,
-  //       body: JSON.stringify(payload)
-  //     });
-
-  //     if (!res.ok) {
-  //       const data = await res.json();
-  //       alert(data.error || "Failed to save image");
-  //       return;
-  //     }
-
-  //     closeImageModal();
-  //     editingImageId = null;
-  //     await loadProduct();
-  //     populateImageColorDropdown();
-
-
-  //   } catch (err) {
-  //     alert("Network error while saving image");
-  //   }
-  // });
+  function productHasThumbnail() {
+    return product?.images?.some(img => img.role === "thumbnail");
+  }
 
 
   function deleteImage(imageId) {
