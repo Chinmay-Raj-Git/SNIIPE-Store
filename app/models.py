@@ -54,8 +54,33 @@ class Users(db.Model):
     name = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    
+    
+# -----------------------------
+# User Address SYSTEM
+# -----------------------------
+class UserAddress(db.Model):
+    __tablename__ = 'user_addresses'
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
 
+    label = db.Column(db.String(50), nullable=True)  # Home / Office
+    full_name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+
+    address_line_1 = db.Column(db.String(255), nullable=False)
+    address_line_2 = db.Column(db.String(255), nullable=True)
+    city = db.Column(db.String(100), nullable=False)
+    state = db.Column(db.String(100), nullable=False)
+    pincode = db.Column(db.String(20), nullable=False)
+
+    is_default = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+
+    user = db.relationship('Users', backref=db.backref('addresses', cascade='all, delete-orphan'))
 
 
 # -----------------------------
@@ -87,7 +112,6 @@ class CartItem(db.Model):
     variant = db.relationship('Product_Variants', backref='cart_items')
 
 
-
 # -----------------------------
 # ORDER SYSTEM
 # -----------------------------
@@ -96,11 +120,23 @@ class Order(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, paid, shipped, delivered, cancelled
+    status = db.Column(db.String(20), default='pending') 
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     payment_method = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    
+    razorpay_order_id = db.Column(db.String(100), nullable=True, unique=True)
+    razorpay_payment_id = db.Column(db.String(100), nullable=True)
+
+    
+    shipping_name = db.Column(db.String(120), nullable=False)
+    shipping_phone = db.Column(db.String(20), nullable=False)
+    shipping_address_line_1 = db.Column(db.String(255), nullable=False)
+    shipping_address_line_2 = db.Column(db.String(255), nullable=True)
+    shipping_city = db.Column(db.String(100), nullable=False)
+    shipping_state = db.Column(db.String(100), nullable=False)
+    shipping_pincode = db.Column(db.String(20), nullable=False)
 
     user = db.relationship('Users', backref='orders')
 

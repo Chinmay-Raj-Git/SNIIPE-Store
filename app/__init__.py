@@ -20,6 +20,9 @@ def create_app():
     app.config['SUPABASE_KEY'] = os.getenv("SUPABASE_KEY")
     app.config['SUPABASE_SERVICE_ROLE_KEY'] = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['RAZORPAY_KEY_ID'] = os.getenv("RAZORPAY_KEY_ID")
+    app.config['RAZORPAY_KEY_SECRET'] = os.getenv("RAZORPAY_KEY_SECRET")
+
 
     db.init_app(app)
     migrate.init_app(app, db)

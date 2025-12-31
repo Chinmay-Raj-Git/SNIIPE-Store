@@ -237,49 +237,72 @@
         }
     }
 
+    // CHECKOUT CART WITH RAZORPAY
     document.getElementById("place-order-btn").addEventListener("click", async () => {
         const token = localStorage.getItem("access_token");
-        if (!token) {
-            window.location.href = "/login-page";
+
+        const res = await fetch("/checkout/razorpay/cart", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            if (data.error === "NO_ADDRESS") {
+                alert("Add shipping address first");
+                window.location.href = "/profile";
+            }
             return;
         }
 
-        const btn = document.getElementById("place-order-btn");
-        btn.disabled = true;
-        btn.textContent = "Redirecting to WhatsApp...";
-
-        try {
-            const res = await fetch("/checkout/whatsapp/cart", {
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + token
-                }
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                alert(data.error || "Checkout failed");
-                return;
-            }
-
-            alert(`Redirecting to WhatsApp\nOrder ID: ${data.order_id}`);
-            window.location.href = data.whatsapp_link;
-
-        } catch (e) {
-            alert("Network error. Try again.");
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "Place Order";
-        }
+        startRazorpay(data.order_id);
     });
+
+
+
+    // document.getElementById("place-order-btn").addEventListener("click", async () => {
+    //     const token = localStorage.getItem("access_token");
+    //     if (!token) {
+    //         window.location.href = "/login-page";
+    //         return;
+    //     }
+
+    //     const btn = document.getElementById("place-order-btn");
+    //     btn.disabled = true;
+    //     btn.textContent = "Redirecting to WhatsApp...";
+
+    //     try {
+    //         const res = await fetch("/checkout/whatsapp/cart", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Authorization": "Bearer " + token
+    //             }
+    //         });
+
+    //         const data = await res.json();
+    //         if (!res.ok) {
+    //             alert(data.error || "Checkout failed");
+    //             return;
+    //         }
+
+    //         alert(`Redirecting to WhatsApp\nOrder ID: ${data.order_id}`);
+    //         window.location.href = data.whatsapp_link;
+
+    //     } catch (e) {
+    //         alert("Network error. Try again.");
+    //     } finally {
+    //         btn.disabled = false;
+    //         btn.textContent = "Place Order";
+    //     }
+    // });
 
 
     function showNotification(message, type = "success") {
         // Create notification element
         const notification = document.createElement("div");
         notification.className = `fixed top-24 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border ${type === "success"
-                ? "bg-green-500/20 border-green-500/30 text-green-400"
-                : "bg-red-500/20 border-red-500/30 text-red-400"
+            ? "bg-green-500/20 border-green-500/30 text-green-400"
+            : "bg-red-500/20 border-red-500/30 text-red-400"
             }`;
         notification.textContent = message;
 

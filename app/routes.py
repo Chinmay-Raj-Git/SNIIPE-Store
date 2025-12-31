@@ -6,9 +6,28 @@ from .auth_utils import require_auth
 from flask import g
 from decimal import Decimal
 from urllib.parse import quote
-
+import razorpay
+from flask import current_app as app
+from sqlalchemy.exc import IntegrityError
+# import app
 
 bp = Blueprint("routes", __name__)
+
+# HELPERS
+def get_razorpay_client():
+    return razorpay.Client(
+        auth=(
+            app.config["RAZORPAY_KEY_ID"],
+            app.config["RAZORPAY_KEY_SECRET"]
+        )
+    )
+    
+def get_default_address(user_id):
+    return UserAddress.query.filter_by(
+        user_id=user_id, is_default=True
+    ).first()
+
+
 
 # ----------------------------------------------------------
 # --PRODUCTS
@@ -363,6 +382,114 @@ def update_profile():
     return jsonify({"message": "Profile updated successfully"})
 
 
+# -----------------------------
+# ----GET: Addresses of User
+# -----------------------------
+@bp.route("/addresses", methods=["GET"])
+@require_auth
+def get_addresses():
+    addresses = UserAddress.query.filter_by(user_id=g.user.id).order_by(
+        UserAddress.is_default.desc(),
+        UserAddress.created_at.asc()
+    ).all()
+
+    return jsonify({
+        "addresses": [{
+            "id": a.id,
+            "label": a.label,
+            "full_name": a.full_name,
+            "phone": a.phone,
+            "address_line_1": a.address_line_1,
+            "address_line_2": a.address_line_2,
+            "city": a.city,
+            "state": a.state,
+            "pincode": a.pincode,
+            "is_default": a.is_default
+        } for a in addresses]
+    })
+    
+    
+# -----------------------------
+# ----POST: User Add Address
+# -----------------------------
+@bp.route("/addresses", methods=["POST"])
+@require_auth
+def add_address():
+    data = request.json
+
+    required = ["full_name", "phone", "address_line_1", "city", "state", "pincode"]
+    if not all(data.get(k) for k in required):
+        return jsonify({"error": "All required fields must be filled"}), 400
+
+    has_default = UserAddress.query.filter_by(
+        user_id=g.user.id, is_default=True
+    ).first()
+
+    address = UserAddress(
+        user_id=g.user.id,
+        label=data.get("label"),
+        full_name=data["full_name"],
+        phone=data["phone"],
+        address_line_1=data["address_line_1"],
+        address_line_2=data.get("address_line_2"),
+        city=data["city"],
+        state=data["state"],
+        pincode=data["pincode"],
+        is_default=False if has_default else True
+    )
+
+    db.session.add(address)
+    db.session.commit()
+
+    return jsonify({"message": "Address added successfully"})
+
+
+# -----------------------------
+# ----PUT: Set Default Address
+# -----------------------------
+@bp.route("/addresses/<int:address_id>/default", methods=["PUT"])
+@require_auth
+def set_default_address(address_id):
+    address = UserAddress.query.filter_by(
+        id=address_id, user_id=g.user.id
+    ).first_or_404()
+
+    UserAddress.query.filter_by(
+        user_id=g.user.id, is_default=True
+    ).update({"is_default": False})
+
+    address.is_default = True
+    db.session.commit()
+
+    return jsonify({"message": "Default address updated"})
+
+
+# -----------------------------
+# ----DELETE: User Address
+# -----------------------------
+@bp.route("/addresses/<int:address_id>", methods=["DELETE"])
+@require_auth
+def delete_address(address_id):
+    address = UserAddress.query.filter_by(
+        id=address_id, user_id=g.user.id
+    ).first_or_404()
+
+    if address.is_default:
+        other = UserAddress.query.filter(
+            UserAddress.user_id == g.user.id,
+            UserAddress.id != address.id
+        ).first()
+        if other:
+            other.is_default = True
+
+    db.session.delete(address)
+    db.session.commit()
+
+    return jsonify({"message": "Address deleted"})
+
+
+
+
 # ----------------------------------------------------------
 # --END OF USER PROFILE-
 # ----------------------------------------------------------
@@ -595,7 +722,7 @@ def create_order():
         new_order = Order(
             user_id=g.user.id,
             total_amount=total,
-            payment_method=request.json.get("payment_method", "COD"),
+            payment_method=request.json.get("payment_method", "razorpay"),
             status="pending"
         )
         db.session.add(new_order)
@@ -657,6 +784,10 @@ def whatsapp_buy_now():
     price = Decimal(variant.price_override or product.price)
     subtotal = price * quantity
 
+    address = get_default_address(g.user.id)
+    if not address:
+        return jsonify({"error": "Please add a shipping address first"}), 400
+
     # ✅ Create order
     order = Order(
         user_id=g.user.id,
@@ -673,7 +804,14 @@ def whatsapp_buy_now():
         variant_id=variant.id,
         quantity=quantity,
         price_at_time=price,
-        subtotal=subtotal
+        subtotal=subtotal,
+        shipping_name=address.full_name,
+        shipping_phone=address.phone,
+        shipping_address_line_1=address.address_line_1,
+        shipping_address_line_2=address.address_line_2,
+        shipping_city=address.city,
+        shipping_state=address.state,
+        shipping_pincode=address.pincode
     )
     db.session.add(order_item)
     db.session.commit()
@@ -728,13 +866,25 @@ def whatsapp_cart_checkout():
             f"  Qty: {item.quantity}\n"
             f"  Price: ₹{item.price_at_time}"
         )
+        
+    address = get_default_address(g.user.id)
+    if not address:
+        return jsonify({"error": "Please add a shipping address first"}), 400
+
 
     # Create order
     order = Order(
         user_id=g.user.id,
         total_amount=total,
         payment_method="WHATSAPP",
-        status="pending_whatsapp"
+        status="pending_whatsapp",
+        shipping_name=address.full_name,
+        shipping_phone=address.phone,
+        shipping_address_line_1=address.address_line_1,
+        shipping_address_line_2=address.address_line_2,
+        shipping_city=address.city,
+        shipping_state=address.state,
+        shipping_pincode=address.pincode
     )
     db.session.add(order)
     db.session.flush()
@@ -776,6 +926,214 @@ def whatsapp_cart_checkout():
 # --END OF ORDERS SYSTEM
 # ----------------------------------------------------------
 
+
+# ----------------------------------------------------------
+# --RAZORPAY PAYMENT
+# ----------------------------------------------------------
+@bp.route("/payments/razorpay/create-order", methods=["POST"])
+@require_auth
+def create_razorpay_order():
+    data = request.json
+    order_id = data.get("order_id")
+
+    order = Order.query.filter_by(
+        id=order_id,
+        user_id=g.user.id
+    ).first_or_404()
+
+    if order.status != "pending_payment":
+        return jsonify({"error": "Invalid order state"}), 400
+
+    client = get_razorpay_client()
+
+    amount_paise = int(order.total_amount * 100)
+
+    rzp_order = client.order.create({
+        "amount": amount_paise,
+        "currency": "INR",
+        "receipt": f"SN-{order.id}",
+        "payment_capture": 1
+    })
+
+    order.razorpay_order_id = rzp_order["id"]
+    db.session.commit()
+
+    return jsonify({
+        "key": app.config["RAZORPAY_KEY_ID"],
+        "amount": amount_paise,
+        "currency": "INR",
+        "razorpay_order_id": rzp_order["id"],
+        "name": "SNIIPE",
+        "description": f"Order SN-{order.id}"
+    })
+
+
+@bp.route("/payments/razorpay/verify", methods=["POST"])
+@require_auth
+def verify_razorpay_payment():
+    data = request.json
+
+    client = get_razorpay_client()
+
+    try:
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": data["razorpay_order_id"],
+            "razorpay_payment_id": data["razorpay_payment_id"],
+            "razorpay_signature": data["razorpay_signature"]
+        })
+    except razorpay.errors.SignatureVerificationError:
+        return jsonify({"error": "Payment verification failed"}), 400
+
+    order = Order.query.filter_by(
+        razorpay_order_id=data["razorpay_order_id"],
+        user_id=g.user.id
+    ).first_or_404()
+
+    # Reduce stock AFTER payment
+    for item in order.items:
+        item.variant.stock -= item.quantity
+
+    order.status = "paid"
+    order.payment_method = "RAZORPAY"
+    order.razorpay_payment_id = data["razorpay_payment_id"]
+
+    db.session.commit()
+
+    return jsonify({"message": "Payment successful"})
+
+
+@bp.route("/checkout/razorpay/buy-now", methods=["POST"])
+@require_auth
+def razorpay_buy_now():
+    data = request.json
+    product_id = data.get("product_id")
+    variant_id = data.get("variant_id")
+    quantity = int(data.get("quantity", 1))
+
+    # 1. Fetch product & variant
+    product = Product.query.get_or_404(product_id)
+    variant = Product_Variants.query.get_or_404(variant_id)
+
+    if variant.stock < quantity:
+        return jsonify({"error": "Insufficient stock"}), 400
+
+    # 2. Get default address (MANDATORY)
+    address = get_default_address(g.user.id)
+    if not address:
+        return jsonify({
+            "error": "NO_ADDRESS",
+            "message": "Please add a shipping address"
+        }), 400
+
+    # 3. Calculate price
+    price = variant.price_override or product.price
+    subtotal = price * quantity
+
+    # 4. Create ORDER (NO stock reduction)
+    order = Order(
+        user_id=g.user.id,
+        total_amount=subtotal,
+        status="pending_payment",
+        payment_method="RAZORPAY",
+
+        shipping_name=address.full_name,
+        shipping_phone=address.phone,
+        shipping_address_line_1=address.address_line_1,
+        shipping_address_line_2=address.address_line_2,
+        shipping_city=address.city,
+        shipping_state=address.state,
+        shipping_pincode=address.pincode
+    )
+
+    db.session.add(order)
+    db.session.flush()  # IMPORTANT (gets order.id)
+
+    # 5. Create order item
+    order_item = OrderItem(
+        order_id=order.id,
+        product_id=product.id,
+        variant_id=variant.id,
+        quantity=quantity,
+        price_at_time=price,
+        subtotal=price * quantity
+    )
+
+    db.session.add(order_item)
+    db.session.commit()
+
+    return jsonify({
+        "order_id": order.id,
+        "amount": subtotal
+    })
+    
+    
+@bp.route("/checkout/razorpay/cart", methods=["POST"])
+@require_auth
+def razorpay_cart_checkout():
+    cart = Cart.query.filter_by(user_id=g.user.id).first()
+    cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
+    if not cart_items:
+        return jsonify({"error": "Cart is empty"}), 400
+
+    address = get_default_address(g.user.id)
+    if not address:
+        return jsonify({"error": "NO_ADDRESS"}), 400
+
+    total = 0
+
+    # Validate stock
+    for item in cart_items:
+        if item.variant.stock < item.quantity:
+            return jsonify({
+                "error": f"Insufficient stock for {item.product.name}"
+            }), 400
+        price = item.variant.price_override or item.product.price
+        total += price * item.quantity
+
+    # Create order
+    order = Order(
+        user_id=g.user.id,
+        total_amount=total,
+        status="pending_payment",
+        payment_method="RAZORPAY",
+
+        shipping_name=address.full_name,
+        shipping_phone=address.phone,
+        shipping_address_line_1=address.address_line_1,
+        shipping_address_line_2=address.address_line_2,
+        shipping_city=address.city,
+        shipping_state=address.state,
+        shipping_pincode=address.pincode
+    )
+
+    db.session.add(order)
+    db.session.flush()
+
+    # Create order items
+    for item in cart_items:
+        price = item.variant.price_override or item.product.price
+        db.session.add(OrderItem(
+            order_id=order.id,
+            product_id=item.product_id,
+            variant_id=item.variant_id,
+            quantity=item.quantity,
+            price_at_time=price,
+            subtotal=price * item.quantity
+        ))
+
+    db.session.commit()
+
+    return jsonify({
+        "order_id": order.id,
+        "amount": total
+    })
+
+
+
+
+# ----------------------------------------------------------
+# --END OF RAZORPAY PAYMENT
+# ----------------------------------------------------------
 
 
 # Admin routes have been moved to app/admin/admin_routes.py
