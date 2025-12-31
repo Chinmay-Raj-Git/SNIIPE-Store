@@ -5,6 +5,7 @@ from app import get_supabase
 from .auth_utils import require_auth
 from flask import g
 from decimal import Decimal
+from urllib.parse import quote
 
 
 bp = Blueprint("routes", __name__)
@@ -630,6 +631,145 @@ def create_order():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to create order: {str(e)}"}), 500
+
+
+@bp.route("/checkout/whatsapp/buy-now", methods=["POST"])
+@require_auth
+def whatsapp_buy_now():
+    data = request.json
+
+    product_id = data.get("product_id")
+    variant_id = data.get("variant_id")
+    quantity = int(data.get("quantity", 1))
+
+    if not product_id or not variant_id:
+        return jsonify({"error": "Product and variant required"}), 400
+
+    if quantity < 1:
+        return jsonify({"error": "Invalid quantity"}), 400
+
+    product = Product.query.get_or_404(product_id)
+    variant = Product_Variants.query.get_or_404(variant_id)
+
+    if variant.stock < quantity:
+        return jsonify({"error": "Insufficient stock"}), 400
+
+    price = Decimal(variant.price_override or product.price)
+    subtotal = price * quantity
+
+    # ✅ Create order
+    order = Order(
+        user_id=g.user.id,
+        total_amount=subtotal,
+        payment_method="WHATSAPP",
+        status="pending_whatsapp"
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    order_item = OrderItem(
+        order_id=order.id,
+        product_id=product.id,
+        variant_id=variant.id,
+        quantity=quantity,
+        price_at_time=price,
+        subtotal=subtotal
+    )
+    db.session.add(order_item)
+    db.session.commit()
+
+    # WhatsApp message
+    message = (
+        f"Hi SNIIPE \n\n"
+        f"I want to place an order.\n\n"
+        f"Order ID: SN-{order.id}\n\n"
+        f"Product: {product.name}\n"
+        f"Color: {variant.color}\n"
+        f"Size: {variant.size}\n"
+        f"Quantity: {quantity}\n"
+        f"Price: ₹{price}\n\n"
+        f"Total: ₹{subtotal}\n\n"
+        f"Please share payment details.\nThank you!"
+    )
+
+    business_number = "+917207701175"  # <-- replace
+    whatsapp_link = f"https://wa.me/{business_number}?text={quote(message)}"
+
+    return jsonify({
+        "order_id": f"SN-{order.id}",
+        "whatsapp_link": whatsapp_link
+    }), 201
+
+
+@bp.route("/checkout/whatsapp/cart", methods=["POST"])
+@require_auth
+def whatsapp_cart_checkout():
+    cart = Cart.query.filter_by(user_id=g.user.id).first()
+    if not cart or not cart.items:
+        return jsonify({"error": "Your cart is empty"}), 400
+
+    total = Decimal("0.00")
+    lines = []
+
+    # Validate stock & calculate total
+    for item in cart.items:
+        if item.variant and item.variant.stock < item.quantity:
+            return jsonify({
+                "error": f"Insufficient stock for {item.product.name} ({item.variant.color} {item.variant.size})"
+            }), 400
+
+        subtotal = Decimal(item.price_at_time) * item.quantity
+        total += subtotal
+
+        lines.append(
+            f"- {item.product.name}\n"
+            f"  Color: {item.variant.color}\n"
+            f"  Size: {item.variant.size}\n"
+            f"  Qty: {item.quantity}\n"
+            f"  Price: ₹{item.price_at_time}"
+        )
+
+    # Create order
+    order = Order(
+        user_id=g.user.id,
+        total_amount=total,
+        payment_method="WHATSAPP",
+        status="pending_whatsapp"
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    for item in cart.items:
+        db.session.add(OrderItem(
+            order_id=order.id,
+            product_id=item.product_id,
+            variant_id=item.variant_id,
+            quantity=item.quantity,
+            price_at_time=item.price_at_time,
+            subtotal=item.quantity * item.price_at_time
+        ))
+
+    # ❗ DO NOT reduce stock yet
+    # ❗ DO NOT clear cart yet (optional — you may clear)
+
+    db.session.commit()
+
+    message = (
+        f"Hi SNIIPE \n\n"
+        f"I want to place an order.\n\n"
+        f"Order ID: SN-{order.id}\n\n"
+        + "\n\n".join(lines) +
+        f"\n\nTotal: ₹{total}\n\n"
+        f"Please share payment details.\nThank you!"
+    )
+
+    business_number = "+917207701175"
+    whatsapp_link = f"https://wa.me/{business_number}?text={quote(message)}"
+
+    return jsonify({
+        "order_id": f"SN-{order.id}",
+        "whatsapp_link": whatsapp_link
+    }), 201
 
 
 # ----------------------------------------------------------

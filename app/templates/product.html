@@ -428,13 +428,55 @@
         }
     }
 
-    function buyNow() {
-        if (buyBtn.disabled) {
-            actionMessage.innerText = "Select an available variant first.";
+    async function buyNow() {
+        if (!selectedVariant) {
+            actionMessage.innerText = "Select a color and size first.";
             return;
         }
-        alert("Razorpay integration coming next...");
+
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "/login-page/product/{{ product.id }}";
+            return;
+        }
+
+        const quantity = parseInt(qtyInput.value || "1", 10);
+
+        buyBtn.disabled = true;
+        buyBtn.innerText = "Processing...";
+
+        try {
+            const res = await fetch("/checkout/whatsapp/buy-now", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    product_id: "{{ product.id }}",
+                    variant_id: selectedVariant.variant_id,
+                    quantity: quantity
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || "Checkout failed");
+                return;
+            }
+
+            alert(`Redirecting to WhatsApp\nOrder ID: ${data.order_id}`);
+            window.location.href = data.whatsapp_link;
+
+        } catch (e) {
+            alert("Network error. Try again.");
+        } finally {
+            buyBtn.disabled = false;
+            buyBtn.innerText = "BUY NOW";
+        }
     }
+
+
 
     document.addEventListener("DOMContentLoaded", () => {
         const colors = Object.keys(COLOR_DATA);

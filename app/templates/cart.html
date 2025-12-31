@@ -23,9 +23,10 @@
 
         <!-- CHECKOUT SUMMARY -->
         <div class="lg:col-span-1">
-            <div id="checkout-box" class="hidden bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-3xl shadow-2xl sticky top-24">
+            <div id="checkout-box"
+                class="hidden bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-3xl shadow-2xl sticky top-24">
                 <h2 class="text-xl font-semibold mb-6">Order Summary</h2>
-                
+
                 <div class="space-y-4 mb-6">
                     <div class="flex justify-between text-gray-300">
                         <span>Subtotal</span>
@@ -57,33 +58,33 @@
 
 {% block scripts %}
 <script>
-let cartData = null;
+    let cartData = null;
 
-async function loadCart() {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/login-page";
-        return;
-    }
-
-    const container = document.getElementById("cart-container");
-    const checkoutBox = document.getElementById("checkout-box");
-
-    try {
-        const res = await fetch("/cart", { headers: { "Authorization": "Bearer " + token }});
-        
-        if (!res.ok) {
-            if (res.status === 401) {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
-                return;
-            }
+    async function loadCart() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "/login-page";
+            return;
         }
 
-        cartData = await res.json();
+        const container = document.getElementById("cart-container");
+        const checkoutBox = document.getElementById("checkout-box");
 
-        if (!cartData.cart || cartData.cart.length === 0) {
-            container.innerHTML = `
+        try {
+            const res = await fetch("/cart", { headers: { "Authorization": "Bearer " + token } });
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "/login-page";
+                    return;
+                }
+            }
+
+            cartData = await res.json();
+
+            if (!cartData.cart || cartData.cart.length === 0) {
+                container.innerHTML = `
                 <div class="bg-black/50 border border-white/10 backdrop-blur-xl p-12 rounded-3xl text-center">
                     <div class="text-6xl mb-4">🛒</div>
                     <p class="text-gray-400 text-lg mb-6">Your cart is empty.</p>
@@ -92,14 +93,14 @@ async function loadCart() {
                     </a>
                 </div>
             `;
-            checkoutBox.classList.add("hidden");
-            return;
-        }
+                checkoutBox.classList.add("hidden");
+                return;
+            }
 
-        checkoutBox.classList.remove("hidden");
-        updateTotals();
+            checkoutBox.classList.remove("hidden");
+            updateTotals();
 
-        container.innerHTML = cartData.cart.map(item => `
+            container.innerHTML = cartData.cart.map(item => `
             <div class="bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-2xl mb-4 hover:border-purple-500/30 transition">
                 <div class="flex flex-col sm:flex-row gap-6">
                     <img src="${item.image_url || '/static/img/placeholder.webp'}"
@@ -134,173 +135,163 @@ async function loadCart() {
                 </div>
             </div>
         `).join("");
-    } catch (error) {
-        console.error("Failed to load cart:", error);
-        localStorage.removeItem("access_token");
-        window.location.href = "/login-page";
-    }
-}
-
-function updateTotals() {
-    if (!cartData || !cartData.cart) return;
-    
-    const subtotal = cartData.total || 0;
-    document.getElementById("subtotal-amount").textContent = `₹${subtotal}`;
-    document.getElementById("total-amount").textContent = `₹${subtotal}`;
-}
-
-function changeQuantity(id, delta) {
-    const input = document.getElementById(`qty-${id}`);
-    const current = parseInt(input.value || "1", 10);
-    const newValue = Math.max(1, current + delta);
-    input.value = newValue;
-    updateItem(id);
-}
-
-async function updateItem(id) {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/login-page";
-        return;
+        } catch (error) {
+            console.error("Failed to load cart:", error);
+            localStorage.removeItem("access_token");
+            window.location.href = "/login-page";
+        }
     }
 
-    const qty = parseInt(document.getElementById(`qty-${id}`).value || "1", 10);
-    if (qty < 1) {
-        document.getElementById(`qty-${id}`).value = 1;
-        return;
+    function updateTotals() {
+        if (!cartData || !cartData.cart) return;
+
+        const subtotal = cartData.total || 0;
+        document.getElementById("subtotal-amount").textContent = `₹${subtotal}`;
+        document.getElementById("total-amount").textContent = `₹${subtotal}`;
     }
 
-    try {
-        const res = await fetch(`/cart/update/${id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ quantity: qty })
-        });
+    function changeQuantity(id, delta) {
+        const input = document.getElementById(`qty-${id}`);
+        const current = parseInt(input.value || "1", 10);
+        const newValue = Math.max(1, current + delta);
+        input.value = newValue;
+        updateItem(id);
+    }
 
-        const data = await res.json();
+    async function updateItem(id) {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "/login-page";
+            return;
+        }
 
-        if (!res.ok) {
-            if (res.status === 401) {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
+        const qty = parseInt(document.getElementById(`qty-${id}`).value || "1", 10);
+        if (qty < 1) {
+            document.getElementById(`qty-${id}`).value = 1;
+            return;
+        }
+
+        try {
+            const res = await fetch(`/cart/update/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ quantity: qty })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "/login-page";
+                    return;
+                }
+                showNotification(data.error || "Failed to update item.", "error");
+                loadCart();
                 return;
             }
-            showNotification(data.error || "Failed to update item.", "error");
+
+            showNotification("Quantity updated", "success");
             loadCart();
+        } catch (error) {
+            showNotification("Network error. Please try again.", "error");
+        }
+    }
+
+    async function deleteItem(id) {
+        if (!confirm("Are you sure you want to remove this item from your cart?")) {
             return;
         }
 
-        showNotification("Quantity updated", "success");
-        loadCart();
-    } catch (error) {
-        showNotification("Network error. Please try again.", "error");
-    }
-}
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "/login-page";
+            return;
+        }
 
-async function deleteItem(id) {
-    if (!confirm("Are you sure you want to remove this item from your cart?")) {
-        return;
-    }
+        try {
+            const res = await fetch(`/cart/remove/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + token }
+            });
 
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/login-page";
-        return;
-    }
+            const data = await res.json();
 
-    try {
-        const res = await fetch(`/cart/remove/${id}`, {
-            method: "DELETE",
-            headers: { "Authorization": "Bearer " + token }
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            if (res.status === 401) {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "/login-page";
+                    return;
+                }
+                showNotification(data.error || "Failed to remove item.", "error");
                 return;
             }
-            showNotification(data.error || "Failed to remove item.", "error");
+
+            showNotification("Item removed from cart", "success");
+            loadCart();
+        } catch (error) {
+            showNotification("Network error. Please try again.", "error");
+        }
+    }
+
+    document.getElementById("place-order-btn").addEventListener("click", async () => {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "/login-page";
             return;
         }
 
-        showNotification("Item removed from cart", "success");
-        loadCart();
-    } catch (error) {
-        showNotification("Network error. Please try again.", "error");
-    }
-}
+        const btn = document.getElementById("place-order-btn");
+        btn.disabled = true;
+        btn.textContent = "Redirecting to WhatsApp...";
 
-document.getElementById("place-order-btn").addEventListener("click", async () => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/login-page";
-        return;
-    }
+        try {
+            const res = await fetch("/checkout/whatsapp/cart", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
 
-    const btn = document.getElementById("place-order-btn");
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Processing...";
-
-    try {
-        const res = await fetch("/orders/create", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ payment_method: "COD" })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            if (res.status === 401) {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || "Checkout failed");
                 return;
             }
-            showNotification(data.error || "Failed to place order.", "error");
-            return;
-        }
 
-        showNotification(`Order placed successfully! Order ID: ${data.order_id}`, "success");
+            alert(`Redirecting to WhatsApp\nOrder ID: ${data.order_id}`);
+            window.location.href = data.whatsapp_link;
+
+        } catch (e) {
+            alert("Network error. Try again.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Place Order";
+        }
+    });
+
+
+    function showNotification(message, type = "success") {
+        // Create notification element
+        const notification = document.createElement("div");
+        notification.className = `fixed top-24 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border ${type === "success"
+                ? "bg-green-500/20 border-green-500/30 text-green-400"
+                : "bg-red-500/20 border-red-500/30 text-red-400"
+            }`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
         setTimeout(() => {
-            window.location.href = "/profile";
-        }, 2000);
-    } catch (error) {
-        showNotification("Network error. Please try again.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
+            notification.style.opacity = "0";
+            notification.style.transform = "translateX(100%)";
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
-});
 
-function showNotification(message, type = "success") {
-    // Create notification element
-    const notification = document.createElement("div");
-    notification.className = `fixed top-24 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border ${
-        type === "success" 
-            ? "bg-green-500/20 border-green-500/30 text-green-400" 
-            : "bg-red-500/20 border-red-500/30 text-red-400"
-    }`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.opacity = "0";
-        notification.style.transform = "translateX(100%)";
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-document.addEventListener("DOMContentLoaded", loadCart);
+    document.addEventListener("DOMContentLoaded", loadCart);
 </script>
 {% endblock %}
