@@ -633,6 +633,18 @@ def admin_orders():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@admin_bp.route("/orders/<int:order_id>/ship", methods=["POST"])
+@require_admin
+def admin_ship_order(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.status != "paid":
+        return redirect("/admin/orders")
+
+    order.status = "shipped"
+    db.session.commit()
+
+    return redirect("/admin/orders")
 
 
 # ───────────────────────────────────────────────
@@ -724,7 +736,15 @@ def admin_product_detail_page(id):
 @admin_bp.route("/orders")
 def admin_orders_page():
     """Render orders management page"""
-    return render_template("admin/admin_orders.html")
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    return render_template("admin/admin_orders.html", orders=orders)
+
+
+@admin_bp.route("/orders/<int:order_id>")
+@require_admin
+def admin_order_detail(order_id):
+    order = Order.query.get_or_404(order_id)
+    return render_template("admin/admin_order_detail.html", order=order)
 
 
 @admin_bp.route("/users")

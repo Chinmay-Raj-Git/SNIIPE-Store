@@ -237,27 +237,30 @@
         }
     }
 
-    // CHECKOUT CART WITH RAZORPAY
-    document.getElementById("place-order-btn").addEventListener("click", async () => {
+    document.getElementById("place-order-btn").addEventListener("click", () => {
+        openAddressModal({ type: "cart" });
+    });
+
+    async function startCartCheckoutWithAddress(addressId) {
         const token = localStorage.getItem("access_token");
 
         const res = await fetch("/checkout/razorpay/cart", {
             method: "POST",
-            headers: { "Authorization": "Bearer " + token }
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ address_id: addressId })
         });
 
         const data = await res.json();
         if (!res.ok) {
-            if (data.error === "NO_ADDRESS") {
-                alert("Add shipping address first");
-                window.location.href = "/profile";
-            }
+            alert(data.error || "Checkout failed");
             return;
         }
 
         startRazorpay(data.order_id);
-    });
-
+    }
 
 
     // document.getElementById("place-order-btn").addEventListener("click", async () => {

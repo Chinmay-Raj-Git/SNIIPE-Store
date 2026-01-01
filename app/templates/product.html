@@ -95,7 +95,7 @@
                 </button>
 
                 <button id="buyNowBtn"
-                    onclick="buyNowRazorpay('{{ product.id }}', selectedVariant?.variant_id, parseInt(quantityInput.value || 1))"
+                    onclick="buyNow('{{ product.id }}', selectedVariant?.variant_id, parseInt(quantityInput.value || 1))"
                     class="flex-1 bg-purple-600 hover:bg-purple-800 active:bg-purple-900 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
                     BUY NOW
                 </button>
@@ -501,17 +501,15 @@
         }
     }
 
-    async function buyNowRazorpay(productId, variantId, quantity) {
-        if (!variantId) {
-            alert("Please select a color and size");
-            return;
-        }
+    function buyNow(productId, variantId, quantity) {
+        openAddressModal({
+            type: "buy_now",
+            payload: { productId, variantId, quantity }
+        });
+    }
 
+    async function startBuyNowWithAddress(addressId, payload) {
         const token = localStorage.getItem("access_token");
-        if (!token) {
-            SNIPE.goProtected(`/product/${productId}`);
-            return;
-        }
 
         const res = await fetch("/checkout/razorpay/buy-now", {
             method: "POST",
@@ -520,77 +518,21 @@
                 "Authorization": "Bearer " + token
             },
             body: JSON.stringify({
-                product_id: productId,
-                variant_id: variantId,
-                quantity: quantity
+                product_id: payload.productId,
+                variant_id: payload.variantId,
+                quantity: payload.quantity,
+                address_id: addressId
             })
         });
 
         const data = await res.json();
-
         if (!res.ok) {
-            if (data.error === "NO_ADDRESS") {
-                alert("Please add a shipping address first");
-                window.location.href = "/profile";
-            } else {
-                alert(data.error || "Checkout failed");
-            }
+            alert(data.error || "Checkout failed");
             return;
         }
 
         startRazorpay(data.order_id);
     }
-
-
-
-    async function buyNow() {
-        if (!selectedVariant) {
-            actionMessage.innerText = "Select a color and size first.";
-            return;
-        }
-
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            window.location.href = "/login-page/product/{{ product.id }}";
-            return;
-        }
-
-        const quantity = parseInt(qtyInput.value || "1", 10);
-
-        buyBtn.disabled = true;
-        buyBtn.innerText = "Processing...";
-
-        try {
-            const res = await fetch("/checkout/whatsapp/buy-now", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify({
-                    product_id: "{{ product.id }}",
-                    variant_id: selectedVariant.variant_id,
-                    quantity: quantity
-                })
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                alert(data.error || "Checkout failed");
-                return;
-            }
-
-            alert(`Redirecting to WhatsApp\nOrder ID: ${data.order_id}`);
-            window.location.href = data.whatsapp_link;
-
-        } catch (e) {
-            alert("Network error. Try again.");
-        } finally {
-            buyBtn.disabled = false;
-            buyBtn.innerText = "BUY NOW";
-        }
-    }
-
 
 
     document.addEventListener("DOMContentLoaded", () => {

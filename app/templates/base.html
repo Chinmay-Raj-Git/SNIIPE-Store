@@ -99,8 +99,51 @@
 
     <!-- MAIN CONTENT BLOCK -->
     <main class="min-h-screen">
-        {% block content %}{% endblock %}
+        {% block content %}
+
+
+
+
+        {% endblock %}
     </main>
+
+    <!-- ADDRESS SELECTION MODAL (initially hidden) -->
+    <div id="addressModal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60">
+
+
+        <div class="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl
+              w-full max-w-lg p-6">
+
+            <h2 class="text-xl font-semibold mb-4">Confirm Shipping Address</h2>
+
+            <div id="addressList" class="space-y-3 max-h-80 overflow-y-auto">
+                <!-- addresses injected here -->
+            </div>
+
+            <p id="addressError" class="text-red-400 text-sm mt-3 hidden">
+                Please select an address to continue
+            </p>
+
+            <div class="flex justify-between items-center mt-6">
+                <a href="/profile" target="_blank" class="text-sm text-purple-400 hover:underline">
+                    + Add new address
+                </a>
+
+                <div class="flex gap-3">
+                    <button onclick="closeAddressModal()" class="px-4 py-2 border border-white/10 rounded-xl">
+                        Cancel
+                    </button>
+
+                    <button onclick="confirmAddressSelection()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700
+                       rounded-xl font-semibold">
+                        Confirm & Pay
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
     <!-- FOOTER -->
     <footer class="mt-20 border-t border-gray-800 py-8 text-center text-gray-500 text-sm">
@@ -139,6 +182,7 @@
                 currency: data.currency,
                 order_id: data.razorpay_order_id,
                 name: "SNIIPE",
+
                 handler: async function (response) {
                     await fetch("/payments/razorpay/verify", {
                         method: "POST",
@@ -149,10 +193,21 @@
                         body: JSON.stringify(response)
                     });
 
-                    alert("Payment successful!");
-                    
-                    window.location.href = "/profile";
+                    window.location.href = `/order-success/${orderId}`;
+                },
+
+                modal: {
+                    ondismiss: function () {
+                        alert("Payment was cancelled. Your order was not placed.");
+                    }
                 }
+            });
+
+            rzp.on("payment.failed", function (response) {
+                alert(
+                    "Payment failed: " +
+                    response.error.description
+                );
             });
 
             rzp.open();
@@ -170,6 +225,93 @@
                 }
             }
         );
+
+        let selectedAddressId = null;
+        let checkoutContext = null; // { type: "buy_now" | "cart", payload: {...} }
+
+        function openAddressModal(context) {
+            checkoutContext = context;
+            selectedAddressId = null;
+
+            document.getElementById("addressModal").classList.remove("hidden");
+            loadAddressesForModal();
+        }
+
+        function closeAddressModal() {
+            document.getElementById("addressModal").classList.add("hidden");
+            document.getElementById("addressError").classList.add("hidden");
+        }
+
+        async function loadAddressesForModal() {
+            const token = localStorage.getItem("access_token");
+
+            const res = await fetch("/addresses", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            const data = await res.json();
+            const addresses = data.addresses || [];
+
+            const container = document.getElementById("addressList");
+            container.innerHTML = "";
+
+            if (!addresses.length) {
+                container.innerHTML = `
+    <p class="text-gray-400 text-sm">
+      No address found. Please add one to continue.
+    </p>`;
+                return;
+            }
+
+            addresses.forEach(addr => {
+                const isDefault = addr.is_default;
+                if (isDefault) selectedAddressId = addr.id;
+
+                container.innerHTML += `
+    <label class="flex items-start gap-3 p-4 border border-white/10
+                  rounded-xl cursor-pointer hover:bg-white/5">
+      <input type="radio" name="address" class="mt-1 h-5 w-5 accent-purple-500 cursor-pointer"
+             ${isDefault ? "checked" : ""}
+             onclick="selectedAddressId=${addr.id}">
+      <div class="text-sm">
+        <p class="font-semibold">
+          ${addr.full_name}
+          ${isDefault ? `<span class="ml-2 text-xs text-green-400">(Default)</span>` : ""}
+        </p>
+        <p class="text-gray-400">
+          ${addr.address_line_1}
+          ${addr.address_line_2 ? ", " + addr.address_line_2 : ""}<br>
+          ${addr.city}, ${addr.state} - ${addr.pincode}<br>
+          ${addr.phone}
+        </p>
+      </div>
+    </label>
+  `;
+            });
+
+        }
+
+        function confirmAddressSelection() {
+            if (!selectedAddressId) {
+                document.getElementById("addressError").classList.remove("hidden");
+                return;
+            }
+
+            closeAddressModal();
+
+            // Resume checkout
+            if (checkoutContext.type === "buy_now") {
+                startBuyNowWithAddress(selectedAddressId, checkoutContext.payload);
+            }
+
+            if (checkoutContext.type === "cart") {
+                startCartCheckoutWithAddress(selectedAddressId);
+            }
+        }
+
+
+
+
         // Common utility functions
         window.SNIPE = {
             // Logout logic

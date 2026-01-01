@@ -9,11 +9,32 @@ from urllib.parse import quote
 import razorpay
 from flask import current_app as app
 from sqlalchemy.exc import IntegrityError
-# import app
+from datetime import datetime, timedelta
+from sqlalchemy import and_
 
 bp = Blueprint("routes", __name__)
 
+# ----------------------------------------------------------
 # HELPERS
+# ----------------------------------------------------------
+def cleanup_stale_pending_orders(user_id):
+    cutoff_time = datetime.utcnow() - timedelta(minutes=1)
+
+    stale_orders = Order.query.filter(
+        and_(
+            Order.user_id == user_id,
+            Order.status == "pending_payment",
+            Order.razorpay_payment_id.is_(None),
+            Order.created_at < cutoff_time
+        )
+    ).all()
+
+    for order in stale_orders:
+        db.session.delete(order)
+
+    if stale_orders:
+        db.session.commit()
+
 def get_razorpay_client():
     return razorpay.Client(
         auth=(
@@ -759,6 +780,16 @@ def create_order():
         db.session.rollback()
         return jsonify({"error": f"Failed to create order: {str(e)}"}), 500
 
+@bp.route("/order-success/<int:order_id>")
+def order_success(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    # # Security: user can only see their own order
+    # if order.user_id != g.user.id:
+    #     return render_template("home.html")
+
+    return render_template("order_success.html", order=order)
+
 
 @bp.route("/checkout/whatsapp/buy-now", methods=["POST"])
 @require_auth
@@ -1009,6 +1040,10 @@ def razorpay_buy_now():
     product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = int(data.get("quantity", 1))
+    
+    address_id = data.get("address_id")
+    if not address_id:
+        return jsonify({"error": "ADDRESS_REQUIRED"}), 400
 
     # 1. Fetch product & variant
     product = Product.query.get_or_404(product_id)
@@ -1018,16 +1053,26 @@ def razorpay_buy_now():
         return jsonify({"error": "Insufficient stock"}), 400
 
     # 2. Get default address (MANDATORY)
-    address = get_default_address(g.user.id)
+    address = UserAddress.query.filter_by(
+        id=address_id,
+        user_id=g.user.id
+    ).first()
+
     if not address:
-        return jsonify({
-            "error": "NO_ADDRESS",
-            "message": "Please add a shipping address"
-        }), 400
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
+    
+    # address = get_default_address(g.user.id)
+    # if not address:
+    #     return jsonify({
+    #         "error": "NO_ADDRESS",
+    #         "message": "Please add a shipping address"
+    #     }), 400
 
     # 3. Calculate price
     price = variant.price_override or product.price
     subtotal = price * quantity
+    
+    cleanup_stale_pending_orders(g.user.id)
 
     # 4. Create ORDER (NO stock reduction)
     order = Order(
@@ -1070,14 +1115,23 @@ def razorpay_buy_now():
 @bp.route("/checkout/razorpay/cart", methods=["POST"])
 @require_auth
 def razorpay_cart_checkout():
+    data = request.json
     cart = Cart.query.filter_by(user_id=g.user.id).first()
     cart_items = CartItem.query.filter_by(cart_id=cart.id).all()
     if not cart_items:
         return jsonify({"error": "Cart is empty"}), 400
+    
+    address_id = data.get("address_id")
+    if not address_id:
+        return jsonify({"error": "ADDRESS_REQUIRED"}), 400
 
-    address = get_default_address(g.user.id)
+    address = UserAddress.query.filter_by(
+        id=address_id,
+        user_id=g.user.id
+    ).first()
+
     if not address:
-        return jsonify({"error": "NO_ADDRESS"}), 400
+        return jsonify({"error": "INVALID_ADDRESS"}), 400
 
     total = 0
 
@@ -1089,6 +1143,8 @@ def razorpay_cart_checkout():
             }), 400
         price = item.variant.price_override or item.product.price
         total += price * item.quantity
+
+    cleanup_stale_pending_orders(g.user.id)
 
     # Create order
     order = Order(
