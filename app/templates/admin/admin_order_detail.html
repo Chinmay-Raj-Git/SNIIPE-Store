@@ -11,8 +11,7 @@
       <h1 class="text-3xl font-bold mt-1">#{{ order.id }}</h1>
     </div>
 
-    <a href="/admin/orders"
-       class="px-4 py-2 bg-white/5 hover:bg-white/10
+    <a href="/admin/orders" class="px-4 py-2 bg-white/5 hover:bg-white/10
               border border-white/10 rounded-xl text-sm font-semibold">
       ← Back
     </a>
@@ -41,6 +40,21 @@
         </span>
       </p>
     </div>
+
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
+      <h2 class="text-lg font-semibold mb-3">Shipping</h2>
+
+      {% if order.shipping_provider %}
+      <p class="text-sm text-gray-400">
+        Provider: {{ order.shipping_provider }}<br>
+        Courier: {{ order.courier_name or "-" }}<br>
+        AWB: {{ order.awb_code or "Not generated" }}
+      </p>
+      {% else %}
+      <p class="text-sm text-gray-400">Shipment not created yet.</p>
+      {% endif %}
+    </div>
+
   </div>
 
   <!-- SHIPPING ADDRESS -->

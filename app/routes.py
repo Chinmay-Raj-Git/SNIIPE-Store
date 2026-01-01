@@ -361,11 +361,6 @@ def forgot_password():
 def oauth_callback():
     return render_template("oauth_callback.html")
 
-
-
-
-
-
 # ----------------------------------------------------------
 # --END OF USER AUTH-
 # ----------------------------------------------------------
@@ -509,8 +504,6 @@ def delete_address(address_id):
     return jsonify({"message": "Address deleted"})
 
 
-
-
 # ----------------------------------------------------------
 # --END OF USER PROFILE-
 # ----------------------------------------------------------
@@ -549,6 +542,7 @@ def get_cart():
         cart_items.append(product_info)
 
     return jsonify({"cart": cart_items, "total": total})
+
 
 # -----------------------------
 # ----POST: Add to Cart
@@ -780,15 +774,14 @@ def create_order():
         db.session.rollback()
         return jsonify({"error": f"Failed to create order: {str(e)}"}), 500
 
+# -----------------------------
+# ----GET: Render order-success.html
+# -----------------------------
 @bp.route("/order-success/<int:order_id>")
 def order_success(order_id):
     order = Order.query.get_or_404(order_id)
-
-    # # Security: user can only see their own order
-    # if order.user_id != g.user.id:
-    #     return render_template("home.html")
-
     return render_template("order_success.html", order=order)
+
 
 
 @bp.route("/checkout/whatsapp/buy-now", methods=["POST"])
@@ -961,6 +954,9 @@ def whatsapp_cart_checkout():
 # ----------------------------------------------------------
 # --RAZORPAY PAYMENT
 # ----------------------------------------------------------
+# -----------------------------
+# ----POST: Create order - RZP
+# -----------------------------
 @bp.route("/payments/razorpay/create-order", methods=["POST"])
 @require_auth
 def create_razorpay_order():
@@ -999,6 +995,9 @@ def create_razorpay_order():
     })
 
 
+# -----------------------------
+# ----POST: Verify payment - RZP
+# -----------------------------
 @bp.route("/payments/razorpay/verify", methods=["POST"])
 @require_auth
 def verify_razorpay_payment():
@@ -1033,6 +1032,9 @@ def verify_razorpay_payment():
     return jsonify({"message": "Payment successful"})
 
 
+# -----------------------------
+# ----POST: Prepare buy-now order
+# -----------------------------
 @bp.route("/checkout/razorpay/buy-now", methods=["POST"])
 @require_auth
 def razorpay_buy_now():
@@ -1112,6 +1114,9 @@ def razorpay_buy_now():
     })
     
     
+# -----------------------------
+# ----POST: Prepare cart order
+# -----------------------------
 @bp.route("/checkout/razorpay/cart", methods=["POST"])
 @require_auth
 def razorpay_cart_checkout():
@@ -1183,8 +1188,6 @@ def razorpay_cart_checkout():
         "order_id": order.id,
         "amount": total
     })
-
-
 
 
 # ----------------------------------------------------------

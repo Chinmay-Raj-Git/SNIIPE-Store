@@ -27,8 +27,7 @@
         {% for order in orders %}
         <tr class="hover:bg-white/5 transition">
           <td class="px-4 py-4">
-            <a href="/admin/orders/{{ order.id }}"
-               class="font-semibold text-purple-400 hover:underline">
+            <a href="/admin/orders/{{ order.id }}" class="font-semibold text-purple-400 hover:underline">
               #{{ order.id }}
             </a>
           </td>
@@ -60,17 +59,17 @@
 
           <td class="px-4 py-4 text-right">
             {% if order.status == "paid" %}
-            <form method="POST" action="/admin/orders/{{ order.id }}/ship">
-              <button
-                class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30
-                       border border-blue-500/30 text-blue-300
-                       rounded-xl text-sm font-semibold transition">
-                Mark Shipped
+            <form method="POST" action="/admin/orders/{{ order.id }}/create-shipment">
+              <button class="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-white">
+                Create Shipment
               </button>
             </form>
-            {% else %}
-              <span class="text-gray-500 text-sm">—</span>
+            {% elif order.status == "shipping_created" %}
+            <span class="text-yellow-400 text-xs">Shipment Created</span>
+            {% elif order.status == "shipped" %}
+            <span class="text-green-400 text-xs">Shipped</span>
             {% endif %}
+
           </td>
         </tr>
         {% endfor %}

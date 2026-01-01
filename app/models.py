@@ -128,7 +128,6 @@ class Order(db.Model):
     
     razorpay_order_id = db.Column(db.String(100), nullable=True, unique=True)
     razorpay_payment_id = db.Column(db.String(100), nullable=True)
-
     
     shipping_name = db.Column(db.String(120), nullable=False)
     shipping_phone = db.Column(db.String(20), nullable=False)
@@ -137,6 +136,12 @@ class Order(db.Model):
     shipping_city = db.Column(db.String(100), nullable=False)
     shipping_state = db.Column(db.String(100), nullable=False)
     shipping_pincode = db.Column(db.String(20), nullable=False)
+    
+    shipping_provider = db.Column(db.String(50), nullable=True)  # shiprocket
+    shipping_order_id = db.Column(db.String(100), nullable=True)
+    awb_code = db.Column(db.String(100), nullable=True)
+    courier_name = db.Column(db.String(100), nullable=True)
+
 
     user = db.relationship('Users', backref='orders')
 

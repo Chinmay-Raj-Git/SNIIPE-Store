@@ -2,13 +2,61 @@ from flask import render_template, request, jsonify, redirect, session, g, send_
 from . import admin_bp
 from app.models import *
 from app import db
-from .admin_utils import require_admin
+from .admin_utils import *
 from app import get_supabase
 import pandas as pd
 import io
 from openpyxl import Workbook
 from uuid import uuid4
 from werkzeug.utils import secure_filename
+from decimal import Decimal
+
+# ───────────────────────────────────────────────
+# HELPERS
+# ───────────────────────────────────────────────
+def serialize(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    return obj
+
+
+def build_shiprocket_order_payload(order):
+    return {
+        "order_id": str(order.id),
+        "order_date": order.created_at.strftime("%Y-%m-%d"),
+        "pickup_location": "Home",  # EXACT name in dashboard
+
+        "billing_customer_name": order.shipping_name,
+        "billing_last_name": "",
+        "billing_address": order.shipping_address_line_1,
+        "billing_address_2": order.shipping_address_line_2 or "",
+        "billing_city": order.shipping_city,
+        "billing_pincode": order.shipping_pincode,
+        "billing_state": order.shipping_state,
+        "billing_country": "India",
+        "billing_email": order.user.email,
+        "billing_phone": order.shipping_phone,
+
+        "shipping_is_billing": True,
+
+        "order_items": [
+            {
+                "name": item.product.name,
+                "sku": f"{item.product_id}-{item.variant_id}",
+                "units": int(item.quantity),
+                "selling_price": float(item.price_at_time)
+            }
+            for item in order.items
+        ],
+
+        "payment_method": "Prepaid",
+        "sub_total": float(order.total_amount),
+
+        "length": 25,
+        "breadth": 20,
+        "height": 3,
+        "weight": 0.4
+    }
 
 
 
@@ -399,8 +447,6 @@ def admin_add_variant(id):
         return jsonify({"error": f"Failed to add variants: {str(e)}"}), 500
 
 
-
-
 @admin_bp.route("/api/variants/<int:vid>", methods=["PUT"])
 @require_admin
 def admin_update_variant(vid):
@@ -715,6 +761,56 @@ def export_data():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+
+
+# ───────────────────────────────────────────────
+# SHIPPING API
+# ───────────────────────────────────────────────
+@admin_bp.route("/orders/<int:order_id>/create-shipment", methods=["POST"])
+@require_admin
+def admin_create_shipment(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.shipping_order_id:
+        return redirect("/admin/orders")
+
+
+    if order.status != "paid":
+        return redirect("/admin/orders")
+
+    token = get_shiprocket_token()
+    payload = build_shiprocket_order_payload(order)
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    url = f"{os.getenv('SHIPROCKET_BASE_URL')}/orders/create/adhoc"
+
+    res = requests.post(url, json=payload, headers=headers)
+
+    # 🔴 If Shiprocket rejected the shipment
+    if res.status_code != 200:
+        print("Shiprocket shipment error:", res.text)
+        return redirect("/admin/orders")
+
+    data = res.json()
+
+    # 🔴 Shiprocket sometimes returns success=false
+    if not data.get("order_id"):
+        print("Shiprocket invalid response:", data)
+        return redirect("/admin/orders")
+
+    # ✅ Only now update DB
+    order.shipping_provider = "shiprocket"
+    order.shipping_order_id = data.get("order_id")
+    order.awb_code = data.get("awb_code")
+    order.courier_name = data.get("courier_name")
+    order.status = "shipping_created"
+
+    db.session.commit()
+    return redirect("/admin/orders")
 
 
 
