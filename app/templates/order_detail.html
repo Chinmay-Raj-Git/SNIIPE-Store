@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Order Details — SNIPE{% endblock %}
+
+{% block content %}
+<section class="max-w-5xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold mb-6">Order Details</h1>
+
+    <!-- STATUS FLOW -->
+    <div id="statusFlow" class="flex flex-wrap gap-3 mb-8"></div>
+
+    <!-- ORDER SUMMARY -->
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-3">Order Summary</h2>
+        <p class="text-gray-400">Order ID: <span class="text-white">#<span id="orderId"></span></span></p>
+        <p class="text-gray-400">Status: <span class="text-white" id="statusLabel"></span></p>
+        <p class="text-gray-400">Total: <span class="text-purple-400 font-bold">₹<span id="orderTotal"></span></span>
+        </p>
+    </div>
+
+    <!-- TRACKING -->
+    <div id="trackingBox" class="hidden bg-black/50 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-3">Tracking</h2>
+        <p class="text-gray-400">Courier: <span id="courierName" class="text-white"></span></p>
+        <p class="text-gray-400">AWB: <span id="awbCode" class="text-white"></span></p>
+    </div>
+
+    <!-- ADDRESS -->
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-3">Shipping Address</h2>
+        <p id="addressBlock" class="text-gray-300"></p>
+    </div>
+
+    <!-- ITEMS -->
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
+        <h2 class="text-xl font-semibold mb-3">Items</h2>
+        <div id="itemsList" class="space-y-3"></div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const STATUS_FLOW = [
+        "pending_payment",
+        "paid",
+        "shipping_created",
+        "awb_assigned",
+        "in_transit",
+        "delivered"
+    ];
+
+
+    const STATUS_LABELS = {
+        pending_payment: "Payment Pending",
+        paid: "Order Placed",
+        shipping_created: "Order Confirmed",
+        awb_assigned: "Order Dispacthed",
+        in_transit: "Out for Delivery",
+        delivered: "Delivered"
+    };
+
+
+    function renderStatusFlow(currentStatus) {
+        const container = document.getElementById("statusFlow");
+        container.innerHTML = "";
+
+        const currentIndex = STATUS_FLOW.indexOf(currentStatus);
+
+        STATUS_FLOW.forEach((status, index) => {
+            const active = index <= currentIndex;
+
+            container.innerHTML += `
+      <div class="flex items-center gap-2">
+        <div class="px-4 py-2 rounded-full text-sm border
+          ${active
+                    ? 'bg-purple-600/20 fas fa- border-purple-500 text-purple-300'
+                    : 'border-white/20 text-gray-500'}">
+          ${STATUS_LABELS[status]}
+        </div>
+        ${index < STATUS_FLOW.length - 1
+                    ? `<span class="text-gray-600 text-2xl">→</span>`
+                    : ''}
+      </div>
+    `;
+        });
+    }
+
+
+    async function loadOrder() {
+        const token = localStorage.getItem("access_token");
+        const orderId = {{ order_id }};
+
+    const res = await fetch(`/orders/${orderId}`, {
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("orderId").textContent = data.id;
+    document.getElementById("statusLabel").textContent = data.status_label;
+    document.getElementById("orderTotal").textContent = data.total;
+
+    renderStatusFlow(data.status);
+
+    if (data.shipping.awb) {
+        document.getElementById("trackingBox").classList.remove("hidden");
+        document.getElementById("awbCode").textContent = data.shipping.awb;
+        document.getElementById("courierName").textContent = data.shipping.courier;
+    }
+
+    document.getElementById("addressBlock").innerText =
+        `${data.address.name}\n${data.address.phone}\n${data.address.line1}, ${data.address.city}, ${data.address.state} - ${data.address.pincode}`;
+
+    document.getElementById("itemsList").innerHTML = data.items.map(i => `
+        <div class="flex justify-between bg-black/40 p-3 rounded-lg">
+            <div>
+                <p class="font-semibold">${i.product}</p>
+                <p class="text-sm text-gray-400">
+                    ${i.variant_color || ""} ${i.variant_size || ""} × ${i.quantity}
+                </p>
+            </div>
+            <p class="text-purple-400 font-bold">₹${i.subtotal}</p>
+        </div>
+    `).join("");
+}
+
+    document.addEventListener("DOMContentLoaded", loadOrder);
+</script>
+{% endblock %}

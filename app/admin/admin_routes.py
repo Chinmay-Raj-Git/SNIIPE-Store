@@ -673,7 +673,12 @@ def admin_orders():
                 "user": o.user.email if o.user else "Unknown",
                 "total": str(o.total_amount),
                 "status": o.status,
-                "created": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else "N/A"
+                "created": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else "N/A",
+                "shipping": {
+                        "status": o.shipment_status,
+                        "awb": o.awb_code,
+                        "courier": o.courier_name
+                    }
             } for o in orders
         ])
     except Exception as e:
@@ -811,7 +816,113 @@ def admin_create_shipment(order_id):
 
     db.session.commit()
     return redirect("/admin/orders")
+@admin_bp.route("/orders/<int:order_id>/sync-shipment", methods=["POST"])
+@require_admin
+def admin_sync_shipment(order_id):
+    order = Order.query.get_or_404(order_id)
 
+    # ───────────────────────────────────────────────
+    # 1️⃣ Validate shipment existence
+    # ───────────────────────────────────────────────
+    if order.shipping_provider != "shiprocket":
+        return jsonify({
+            "error": "ORDER_NOT_SHIPROCKET",
+            "message": "This order is not shipped via Shiprocket"
+        }), 400
+
+    if not order.shipping_order_id:
+        return jsonify({
+            "error": "NO_SHIPMENT",
+            "message": "Shipment has not been created yet"
+        }), 400
+
+    # ───────────────────────────────────────────────
+    # 2️⃣ Fetch shipment data from Shiprocket
+    # ───────────────────────────────────────────────
+    try:
+        response = fetch_shiprocket_order(order.shipping_order_id)
+        # print("🔵 RAW SHIPROCKET RESPONSE:", response)
+
+    except Exception as e:
+        return jsonify({
+            "error": "SHIPROCKET_FETCH_FAILED",
+            "message": str(e)
+        }), 502
+
+    data = response.get("data")
+    if not data:
+        return jsonify({
+            "error": "EMPTY_RESPONSE",
+            "message": "Shiprocket returned no data"
+        }), 502
+
+    # ───────────────────────────────────────────────
+    # 3️⃣ Normalize shipment object (CRITICAL FIX)
+    # ───────────────────────────────────────────────
+    shipment = None
+
+    shipments = data.get("shipments")
+
+    # Case 1: shipments is a list
+    if isinstance(shipments, list) and shipments:
+        shipment = shipments[0]
+
+    # Case 2: shipments is a dict (THIS IS YOUR CASE)
+    elif isinstance(shipments, dict):
+        shipment = shipments
+
+    # Fallback: sometimes AWB is directly on data
+    elif isinstance(data, dict):
+        shipment = data
+
+    if not shipment:
+        return jsonify({
+            "error": "NO_SHIPMENT_DATA",
+            "message": "Shipment exists but tracking is not available yet"
+        }), 202
+
+    # ───────────────────────────────────────────────
+    # 4️⃣ Extract fields safely
+    # ───────────────────────────────────────────────
+    awb = shipment.get("awb") or shipment.get("last_mile_awb")
+    courier = shipment.get("courier") or shipment.get("courier_name")
+    raw_status = (shipment.get("status") or "").lower()
+
+
+    # ───────────────────────────────────────────────
+    # 5️⃣ Update DB (non-destructive)
+    # ───────────────────────────────────────────────
+    if awb:
+        order.awb_code = awb
+
+    if courier:
+        order.courier_name = courier
+
+    # ───────────────────────────────────────────────
+    # 6️⃣ Map Shiprocket → internal order.status
+    # ───────────────────────────────────────────────
+    if awb and order.status == "shipping_created":
+        order.status = "awb_assigned"
+
+    if "in transit" in raw_status:
+        order.status = "in_transit"
+
+    if "delivered" in raw_status:
+        order.status = "delivered"
+
+    db.session.commit()
+
+    # ───────────────────────────────────────────────
+    # 7️⃣ Return JSON (no redirect, no flash)
+    # ───────────────────────────────────────────────
+    return jsonify({
+        "message": "Shipment synced successfully",
+        "order_id": order.id,
+        "status": order.status,
+        "awb": order.awb_code,
+        "courier": order.courier_name,
+        "shiprocket_status": shipment.get("status")
+    }), 200
 
 
 # ───────────────────────────────────────────────

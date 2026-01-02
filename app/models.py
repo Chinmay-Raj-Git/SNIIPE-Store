@@ -139,6 +139,7 @@ class Order(db.Model):
     
     shipping_provider = db.Column(db.String(50), nullable=True)  # shiprocket
     shipping_order_id = db.Column(db.String(100), nullable=True)
+    shipment_status = db.Column(db.String(50), nullable=True)
     awb_code = db.Column(db.String(100), nullable=True)
     courier_name = db.Column(db.String(100), nullable=True)
 

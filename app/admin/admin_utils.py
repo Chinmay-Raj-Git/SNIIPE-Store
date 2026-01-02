@@ -11,6 +11,21 @@ from datetime import datetime, timedelta
 _shiprocket_token = None
 _shiprocket_token_expiry = None
 
+def fetch_shiprocket_order(shiprocket_order_id):
+    token = get_shiprocket_token()
+
+    url = f"https://apiv2.shiprocket.in/v1/external/orders/show/{shiprocket_order_id}"
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    res = requests.get(url, headers=headers)
+    res.raise_for_status()
+
+    return res.json()
+
+
 def get_shiprocket_token():
     global _shiprocket_token, _shiprocket_token_expiry
 
@@ -35,7 +50,8 @@ def get_shiprocket_token():
 
 ADMIN_EMAILS = [
     "ychinmayraj06@gmail.com",
-    "rahul.maganti2004@gmail.com"
+    "rahul.maganti2004@gmail.com",
+    "aurangabadkaraditi07@gmail.com"
 ]
 
 def require_admin(f):

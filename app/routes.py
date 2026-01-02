@@ -48,6 +48,19 @@ def get_default_address(user_id):
         user_id=user_id, is_default=True
     ).first()
 
+def get_user_friendly_status(status):
+    mapping = {
+        "pending": "Pending payment",
+        "pending_payment": "Pending payment",
+        "paid": "Payment successful",
+        "shipping_created": "Order confirmed",
+        "awb_assigned": "Picked up",
+        "in_transit": "On the way",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled"
+    }
+    return mapping.get(status, "Processing")
+
 
 
 # ----------------------------------------------------------
@@ -782,6 +795,54 @@ def order_success(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template("order_success.html", order=order)
 
+# -----------------------------
+# ----GET: Order Details
+# -----------------------------
+@bp.route("/orders/<int:order_id>", methods=["GET"])
+@require_auth
+def get_order_detail(order_id):
+    user = g.user
+
+    order = Order.query.filter_by(id=order_id, user_id=user.id).first()
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    items = []
+    for item in order.items:
+        items.append({
+            "product": item.product.name,
+            "variant_color": item.variant.color if item.variant else None,
+            "variant_size": item.variant.size if item.variant else None,
+            "quantity": item.quantity,
+            "price": float(item.price_at_time),
+            "subtotal": float(item.subtotal)
+        })
+
+    return jsonify({
+        "id": order.id,
+        "created_at": order.created_at.isoformat(),
+        "status": order.status,
+        "status_label": get_user_friendly_status(order.status),
+
+        "shipping": {
+            "awb": order.awb_code,
+            "courier": order.courier_name,
+        },
+
+        "address": {
+            "name": order.shipping_name,
+            "phone": order.shipping_phone,
+            "line1": order.shipping_address_line_1,
+            "line2": order.shipping_address_line_2,
+            "city": order.shipping_city,
+            "state": order.shipping_state,
+            "pincode": order.shipping_pincode,
+        },
+
+        "items": items,
+        "total": float(order.total_amount)
+    })
+
 
 
 @bp.route("/checkout/whatsapp/buy-now", methods=["POST"])
@@ -1023,11 +1084,27 @@ def verify_razorpay_payment():
     for item in order.items:
         item.variant.stock -= item.quantity
 
+    # Mark payment successful
     order.status = "paid"
     order.payment_method = "RAZORPAY"
     order.razorpay_payment_id = data["razorpay_payment_id"]
+    
+    db.session.commit()  # commit payment first (important)
 
-    db.session.commit()
+    # 🔁 AUTO CREATE SHIPMENT
+    try:
+        sr_response = create_shiprocket_shipment(order)
+
+        if sr_response and "order_id" in sr_response:
+            order.shipping_provider = "shiprocket"
+            order.shipping_order_id = str(sr_response["order_id"])
+            order.status = "shipping_created"
+            db.session.commit()
+
+    except Exception as e:
+        # VERY IMPORTANT:
+        # Do NOT fail payment if shipment fails
+        print("Shiprocket shipment creation failed:", str(e))
 
     return jsonify({"message": "Payment successful"})
 
@@ -1190,6 +1267,68 @@ def razorpay_cart_checkout():
     })
 
 
+# -----------------------------
+# ----HELPER: Shipment Creation
+# -----------------------------
+def create_shiprocket_shipment(order):
+    """
+    Creates a shipment in Shiprocket.
+    Safe to call only once per order.
+    """
+
+    # Safety: prevent duplicate shipment
+    if order.shipping_order_id:
+        return None
+
+    token = get_shiprocket_token()
+
+    url = "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc"
+
+    items = []
+    for item in order.items:
+        items.append({
+            "name": item.product.name,
+            "sku": str(item.variant_id or item.product_id),
+            "units": item.quantity,
+            "selling_price": float(item.price_at_time),
+            "discount": 0,
+            "tax": 0,
+            "hsn": ""
+        })
+
+    payload = {
+        "order_id": str(order.id),
+        "order_date": order.created_at.strftime("%Y-%m-%d"),
+        "pickup_location": "Home",  # MUST match Shiprocket pickup name
+        "billing_customer_name": order.shipping_name,
+        "billing_phone": order.shipping_phone,
+        "billing_address": order.shipping_address_line_1,
+        "billing_address_2": order.shipping_address_line_2,
+        "billing_city": order.shipping_city,
+        "billing_state": order.shipping_state,
+        "billing_pincode": order.shipping_pincode,
+        "billing_country": "India",
+        "shipping_is_billing": True,
+        "order_items": items,
+        "payment_method": "Prepaid",
+        "sub_total": float(order.total_amount),
+        "length": 25,
+        "breadth": 20,
+        "height": 3,
+        "weight": 0.5
+    }
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    res = requests.post(url, json=payload, headers=headers)
+    res.raise_for_status()
+
+    return res.json()
+
+
 # ----------------------------------------------------------
 # --END OF RAZORPAY PAYMENT
 # ----------------------------------------------------------
@@ -1236,6 +1375,13 @@ def home():
 @bp.route("/profile")
 def profile():
     return render_template("profile.html")
+
+# -----------------------------
+# ORDER PAGE RENDERING
+# -----------------------------
+@bp.route("/order/<int:order_id>")
+def order_detail_page(order_id):
+    return render_template("order_detail.html", order_id=order_id)
 
 # -----------------------------
 # CART PAGE RENDERING
