@@ -9,27 +9,40 @@
 
 {% block scripts %}
 <script>
-(async () => {
-  try {
-    // USE the global client from base.html
+  (async function () {
+    const intent = localStorage.getItem("oauth_intent") || "login";
+    localStorage.removeItem("oauth_intent");
+
     const { data, error } = await window.supabaseClient.auth.getSession();
 
-    if (error) throw error;
-    if (!data.session) throw new Error("No session");
+    if (error || !data.session) {
+      alert("Authentication failed.");
+      window.location.href = "/login-page";
+      return;
+    }
 
-    // Store token for Flask auth
-    localStorage.setItem(
-      "access_token",
-      data.session.access_token
-    );
+    // backend should exchange session for access_token
+    const res = await fetch("/auth/oauth-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        access_token: data.session.access_token
+      })
+    });
 
-    // Redirect after successful login
-    window.location.href = "/home";
-  } catch (err) {
-    console.error("OAuth callback failed:", err);
-    alert("OAuth login failed");
-    window.location.href = "/login-page";
-  }
-})();
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert(result.error || "Login failed.");
+      window.location.href = "/login-page";
+      return;
+    }
+
+    localStorage.setItem("access_token", result.access_token);
+
+    // redirect based on intent
+    window.location.href = intent === "register" ? "/home" : "/home";
+  })();
 </script>
+
 {% endblock %}

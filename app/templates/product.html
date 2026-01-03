@@ -31,7 +31,22 @@
                     class="px-3 py-1 rounded-full text-sm bg-purple-600/20 border border-purple-500/30 text-purple-200">In-store</span>
             </div>
 
-            <p class="text-3xl font-semibold mt-4 text-purple-300">₹{{ product.price }}</p>
+            <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through">
+                ₹<span id="oldPrice"></span>
+                <p class="text-purple-400"><i class="fa-solid fa-tag"></i> 26% OFF!</p>
+            </p>
+
+            <p class="text-3xl font-semibold mt-4 text-purple-300">
+                ₹<span id="newPrice">{{ product.price }}</span> 
+            </p>
+
+            <p class="mt-2 inline-block px-3 py-1 text-xs sm:text-sm
+            max-w-full break-words text-center
+            bg-green-500/20 border border-green-500/30
+            rounded-full text-green-300">
+
+                🎉 NEW YEAR OFFER: 26% OFF — Valid till Jan 31
+            </p>
 
             {% if product.description %}
             <p class="mt-4 text-gray-300 leading-relaxed">{{ product.description }}</p>
@@ -66,6 +81,7 @@
             <!-- AVAILABILITY + QTY -->
             <div class="mt-6 flex flex-col gap-3">
                 <div class="flex items-center gap-3">
+                    <span id="variantPrice" class="text-sm text-purple-300"></span>
                     <span id="variantStatus"
                         class="text-sm px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">Select
                         a color and size</span>
@@ -83,6 +99,10 @@
                             class="px-3 py-2 text-lg hover:bg-white/5">+</button>
                     </div>
                 </div>
+                <span id="info"
+                    class="text-sm px-3 py-1 w-fit rounded-full bg-white/5 border border-white/10 text-gray-300">
+                    <i class="fa-solid fa-circle-info"></i> Arrival in 4-5 days
+                </span>
             </div>
 
             <p id="actionMessage" class="text-lg text-purple-400 mt-2"></p>
@@ -194,7 +214,14 @@
             <div class="p-4">
                 <h3 class="text-lg font-semibold">{{ item.name }}</h3>
                 <p class="text-gray-400">{{ item.category or 'Clothing' }}</p>
-                <p class="mt-2 text-purple-400 font-bold">₹{{ item.price }}</p>
+                <p class="text-gray-400 line-through text-sm">
+                    ₹{{ (item.price | float * 1.35) | round(0) }}
+                </p>
+
+                <p class="text-purple-400 font-bold">
+                    ₹{{ item.price }}
+                </p>
+
             </div>
         </a>
         {% endfor %}
@@ -207,6 +234,50 @@
 
 <!-- JS -->
 <script>
+    let discountPercentage = 0.26;
+    let basePrice = parseFloat('{{ product.price }}');
+    let newPrice = basePrice
+    const oldPrice = Math.round(newPrice / (1 - discountPercentage));
+    document.getElementById("oldPrice").innerText = oldPrice;
+
+
+
+    // async function applyFirstOrderDiscount() {
+    //     const token = localStorage.getItem("access_token");
+
+    //     const firstOrderBadge = document.getElementById("firstOrderBadge");
+    //     const loginDiscountBadge = document.getElementById("loginDiscountBadge");
+
+    //     // 🟡 USER NOT LOGGED IN
+    //     if (!token) {
+    //         if (loginDiscountBadge) loginDiscountBadge.classList.remove("hidden");
+    //         return;
+    //     }
+
+    //     // 🟢 USER LOGGED IN → check first order
+    //     const res = await fetch("/user/first-order", {
+    //         headers: { "Authorization": "Bearer " + token }
+    //     });
+
+    //     const data = await res.json();
+    //     console.log("First order data:", data);
+
+    //     if (data.is_first_order) {
+    //         // Apply extra 10% discount
+    //         newPrice = Math.round(newPrice * 0.9);
+    //         basePrice = newPrice;
+    //         document.getElementById("newPrice").innerText = newPrice;
+
+    //         // Show first-order badge
+    //         if (firstOrderBadge) firstOrderBadge.classList.remove("hidden");
+    //     }
+    // }
+
+
+
+
+
+
     const COLOR_DATA = JSON.parse('{{ color_data | tojson | safe }}') || {};
 
 
@@ -214,7 +285,6 @@
     let selectedSize = null;
     let selectedVariant = null;
 
-    const basePrice = parseFloat('{{ product.price }}');
     console.log("Variant Data:", COLOR_DATA);
 
     const statusEl = document.getElementById("variantStatus");
@@ -228,6 +298,7 @@
         const token = localStorage.getItem("access_token");
 
         try {
+            SNIPE.showLoading(buyBtn, "Processing...");
             // 1. Create Razorpay order
             const res = await fetch("/payments/razorpay/create-order", {
                 method: "POST",
@@ -502,6 +573,11 @@
     }
 
     function buyNow(productId, variantId, quantity) {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIPE.goProtected("/home");
+            return;
+        }
         openAddressModal({
             type: "buy_now",
             payload: { productId, variantId, quantity }
@@ -509,6 +585,7 @@
     }
 
     async function startBuyNowWithAddress(addressId, payload) {
+        SNIPE.showLoading(buyBtn, "Processing...");
         const token = localStorage.getItem("access_token");
 
         const res = await fetch("/checkout/razorpay/buy-now", {
@@ -540,6 +617,7 @@
         if (colors.length) {
             selectColor(colors[0]);
         }
+        applyFirstOrderDiscount();
     });
 
 </script>

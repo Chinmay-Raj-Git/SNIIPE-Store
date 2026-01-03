@@ -30,15 +30,22 @@
                 <div class="space-y-4 mb-6">
                     <div class="flex justify-between text-gray-300">
                         <span>Subtotal</span>
+                        <span class="line-through text-sm text-gray-400" id="old-subtotal">₹0</span>
+                    </div>
+
+                    <div class="flex justify-between text-gray-300">
+                        <span>Discounted Price</span>
                         <span id="subtotal-amount" class="text-white">₹0</span>
                     </div>
+
                     <div class="flex justify-between text-gray-300">
                         <span>Shipping</span>
                         <span class="text-white">Free</span>
                     </div>
                     <div class="border-t border-white/10 pt-4 flex justify-between text-lg font-semibold">
                         <span>Total</span>
-                        <span id="total-amount" class="text-purple-400 text-xl">₹0</span>
+                        <span id="total-amount" class="text-purple-400 
+                        text-xl">₹0</span>
                     </div>
                 </div>
 
@@ -113,7 +120,15 @@
                             ${item.variant_color ? `<span>Color: <span class="text-white">${item.variant_color}</span></span>` : ''}
                             ${item.variant_size ? `<span>Size: <span class="text-white">${item.variant_size}</span></span>` : ''}
                         </div>
-                        <p class="text-purple-400 font-bold text-lg mb-4">₹${item.price}</p>
+                        <p class="text-gray-400 line-through text-sm">
+                        ₹${Math.round(item.price * 1.35)}
+                        </p>
+
+                        <p class="text-purple-400 font-bold text-lg">
+                        ₹${item.price}
+                        </p>
+
+
 
                         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div class="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden">
@@ -146,8 +161,12 @@
         if (!cartData || !cartData.cart) return;
 
         const subtotal = cartData.total || 0;
+        const oldSubTotal = Math.round(subtotal * 1.35);
+
+        document.getElementById("old-subtotal").textContent = `₹${oldSubTotal}`;
         document.getElementById("subtotal-amount").textContent = `₹${subtotal}`;
         document.getElementById("total-amount").textContent = `₹${subtotal}`;
+
     }
 
     function changeQuantity(id, delta) {

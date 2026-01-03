@@ -44,7 +44,7 @@
     // Load Products from backend
     async function loadProducts() {
         const container = document.getElementById("productsList");
-        
+
         // Show loading state
         container.innerHTML = `
             <div class="col-span-full text-center py-12">
@@ -55,11 +55,11 @@
 
         try {
             const res = await fetch("/products");
-            
+
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
-            
+
             allProducts = await res.json();
             displayProducts(allProducts);
         } catch (error) {
@@ -100,7 +100,13 @@
             <div class="p-5">
                 <h3 class="text-xl font-semibold">${p.name}</h3>
                 <p class="text-gray-400">${p.category || 'Clothing'}</p>
-                <p class="mt-2 text-purple-400 font-bold">₹${p.price}</p>
+                <p class="text-gray-400 line-through text-sm">
+                ₹${Math.round(p.price * 1.35)}
+                </p>
+                <p class="text-purple-400 font-bold">
+                ₹${p.price}
+                </p>
+
             </div>
         </a>
     `).join("");

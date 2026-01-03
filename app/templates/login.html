@@ -13,7 +13,7 @@
     </div>
 
     <div class="space-y-4">
-      <button type="button" onclick="oauthLogin('google')"
+      <button type="button" onclick="oauthLogin('google', 'login')"
         class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
         <span class="text-lg text-purple-400/60"><i class="fa-brands fa-google"></i></span>
         <span class="font-semibold text-white">Continue with Google</span>
@@ -143,19 +143,6 @@
     }
   });
 
-  async function oauthLogin(provider) {
-    const { error } = await window.supabaseClient.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: "http://localhost:5000/auth/callback"
-      }
-    });
-
-    if (error) {
-      console.error(error);
-      alert("OAuth start failed");
-    }
-  }
 
 
   document.addEventListener("DOMContentLoaded", () => {

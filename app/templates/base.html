@@ -96,6 +96,25 @@
         </div>
     </header>
 
+    <!-- GLOBAL ANNOUNCEMENT BAR -->
+    <div id="global-announcement" class="relative overflow-hidden bg-purple-600/70 px-6 py-2 text-sm">
+        <div id="global-news-slider" class="relative h-5 flex items-center justify-center">
+
+            <span class="global-news-item absolute text-center px-4 text-xs sm:text-sm leading-snug
+             transition-all duration-700 ease-in-out opacity-100">
+                🎉 <strong>NEW YEAR 2026:</strong> Flat 26% OFF on every order till Jan 31
+            </span>
+
+            <span class="global-news-item absolute text-center px-4 text-xs sm:text-sm leading-snug
+             transition-all duration-700 ease-in-out opacity-0">
+                💎 <strong>FREE SHIPPING:</strong> No delivery charges at all.
+            </span>
+
+        </div>
+    </div>
+
+
+
 
     <!-- MAIN CONTENT BLOCK -->
     <main class="min-h-screen">
@@ -108,8 +127,7 @@
     </main>
 
     <!-- ADDRESS SELECTION MODAL (initially hidden) -->
-    <div id="addressModal"
-     class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60">
+    <div id="addressModal" class="fixed inset-0 z-50 px-4 hidden flex items-center justify-center bg-black/60">
 
 
         <div class="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl
@@ -151,67 +169,170 @@
         <p class="mt-2">Made with &hearts; using Flask + Tailwind</p>
     </footer>
 
+    <div id="loader" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+        <div class="animate-spin h-12 w-12 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+    </div>
+
+    <script>
+        function showLoader() {
+            document.getElementById("loader").classList.remove("hidden");
+        }
+        function hideLoader() {
+            document.getElementById("loader").classList.add("hidden");
+        }
+    </script>
+
+    <div id="orderSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70">
+
+        <div class="bg-black/80 border border-white/10 rounded-3xl p-8 max-w-lg w-full text-center">
+            <div class="flex justify-center mb-4">
+                <div class="h-16 w-16 rounded-full bg-green-500/20 border border-green-500/30
+                  flex items-center justify-center">
+                    <i class="fa-regular fa-circle-check text-2xl text-green-500"></i>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-2">Order Placed Successfully 🎉</h2>
+            <p class="text-gray-400 mb-6">Thank you for shopping with SNIIPE</p>
+
+            <p class="text-sm text-gray-400">Order ID</p>
+            <p id="successOrderId" class="font-semibold mb-4">#SN-</p>
+
+            <div class="flex gap-4 justify-center">
+                <a href="/profile" class="px-6 py-3 bg-purple-600 rounded-xl font-semibold">
+                    View Orders
+                </a>
+                <button onclick="closeOrderSuccessPopup()" class="px-6 py-3 border border-white/10 rounded-xl">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showOrderSuccessPopup(orderId) {
+            hideLoader();
+            document.getElementById("successOrderId").innerText += orderId;
+            document.getElementById("orderSuccessModal").classList.remove("hidden");
+        }
+
+        function closeOrderSuccessPopup() {
+            document.getElementById("orderSuccessModal").classList.add("hidden");
+        }
+    </script>
+
+
+
 
     <!-- GLOBAL JS -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <script>
+        (function () {
+            const items = document.querySelectorAll("#global-news-slider .global-news-item");
+            if (!items.length) return;
 
-        async function startRazorpay(orderId) {
+            let index = 0;
+
+            setInterval(() => {
+                const current = items[index];
+                const next = items[(index + 1) % items.length];
+
+                current.classList.remove("translate-x-0", "opacity-100");
+                current.classList.add("-translate-x-full", "opacity-0");
+
+                next.classList.remove("translate-x-full", "opacity-0");
+                next.classList.add("translate-x-0", "opacity-100");
+
+                setTimeout(() => {
+                    current.classList.remove("-translate-x-full");
+                    current.classList.add("translate-x-full");
+                }, 700);
+
+                index = (index + 1) % items.length;
+            }, 3000);
+        })();
+    </script>
+
+    <script>
+        async function oauthLogin(provider, intent = "login") {
+            // store intent so callback knows what to do
+            localStorage.setItem("oauth_intent", intent);
+
+            const { error } = await window.supabaseClient.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+
+            if (error) {
+                console.error("OAuth error:", error);
+                alert("Google login failed. Please try again.");
+            }
+        }
+    </script>
+
+
+
+    <script>
+
+        function startRazorpay(orderId) {
+            showLoader(); // 👈 ADD
+
             const token = localStorage.getItem("access_token");
 
-            const res = await fetch("/payments/razorpay/create-order", {
+            fetch("/payments/razorpay/create-order", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + token
                 },
                 body: JSON.stringify({ order_id: orderId })
-            });
+            })
+                .then(res => res.json())
+                .then(data => {
+                    hideLoader(); // 👈 Razorpay popup is ready
 
-            const data = await res.json();
-            if (!res.ok) {
-                alert("Failed to start payment");
-                return;
-            }
+                    const rzp = new Razorpay({
+                        key: data.key,
+                        amount: data.amount,
+                        currency: data.currency,
+                        order_id: data.razorpay_order_id,
+                        name: "SNIIPE",
 
-            const rzp = new Razorpay({
-                key: data.key,
-                amount: data.amount,
-                currency: data.currency,
-                order_id: data.razorpay_order_id,
-                name: "SNIIPE",
+                        handler: async function (response) {
+                            showLoader(); // 👈 payment success → redirecting
 
-                handler: async function (response) {
-                    await fetch("/payments/razorpay/verify", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": "Bearer " + token
+                            await fetch("/payments/razorpay/verify", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": "Bearer " + token
+                                },
+                                body: JSON.stringify(response)
+                            });
+
+                            showOrderSuccessPopup(orderId); // 👈 NEW (see section 2)
                         },
-                        body: JSON.stringify(response)
+
+                        modal: {
+                            ondismiss: function () {
+                                hideLoader();
+                                alert("Payment cancelled.");
+                            }
+                        }
                     });
 
-                    window.location.href = `/order-success/${orderId}`;
-                },
-
-                modal: {
-                    ondismiss: function () {
-                        alert("Payment was cancelled. Your order was not placed.");
-                    }
-                }
-            });
-
-            rzp.on("payment.failed", function (response) {
-                alert(
-                    "Payment failed: " +
-                    response.error.description
-                );
-            });
-
-            rzp.open();
+                    rzp.open();
+                })
+                .catch(() => {
+                    hideLoader();
+                    alert("Payment failed to start.");
+                });
         }
+
 
         window.supabaseClient = window.supabase.createClient(
             "{{ config['SUPABASE_URL'] }}",

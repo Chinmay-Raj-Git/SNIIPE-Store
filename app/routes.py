@@ -368,7 +368,56 @@ def forgot_password():
 #         return jsonify({"url": res.url})
 #     except Exception as e:
 #         return jsonify({"error": str(e)}), 400
-    
+
+# -----------------------------
+# ----POST: OAuth Login (Google)
+# -----------------------------
+@bp.route("/auth/oauth-login", methods=["POST"])
+def oauth_login_backend():
+    data = request.json
+    supabase_access_token = data.get("access_token")
+
+    if not supabase_access_token:
+        return jsonify({"error": "Missing OAuth token"}), 400
+
+    supabase = get_supabase()
+
+    try:
+        # 1️⃣ Get user info from Supabase using access token
+        user_res = supabase.auth.get_user(supabase_access_token)
+
+        if not user_res or not user_res.user:
+            return jsonify({"error": "Invalid OAuth session"}), 401
+
+        supa_user = user_res.user
+        email = supa_user.email
+        name = supa_user.user_metadata.get("full_name") or supa_user.user_metadata.get("name") or email.split("@")[0]
+
+        # 2️⃣ Check if user exists in our DB
+        user = Users.query.filter_by(id=supa_user.id).first()
+
+        # 3️⃣ If not, create user
+        if not user:
+            user = Users(
+                id=supa_user.id,          # Supabase UUID
+                email=email,
+                name=name,
+                created_at=supa_user.created_at,
+                updated_at=supa_user.updated_at
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        # 4️⃣ Return access token (reuse Supabase token)
+        return jsonify({
+            "message": "OAuth login successful",
+            "access_token": supabase_access_token
+        })
+
+    except Exception as e:
+        print("OAuth backend error:", e)
+        return jsonify({"error": "OAuth login failed"}), 500
+
 
 @bp.route("/auth/callback")
 def oauth_callback():
@@ -437,6 +486,14 @@ def get_addresses():
         } for a in addresses]
     })
     
+
+@bp.route("/user/first-order")
+@require_auth
+def is_first_order():
+    from .models import Order
+    count = Order.query.filter_by(user_id=g.user.id).count()
+    return jsonify({ "is_first_order": count == 0 })
+
     
 # -----------------------------
 # ----POST: User Add Address
@@ -545,8 +602,8 @@ def get_cart():
         product_info = {
             "id": item.id,
             "product_name": item.product.name,
-            "variant_color": item.variant.color,
-            "variant_size": item.variant.size,
+            "variant_color": item.variant.color if item.variant else None,
+            "variant_size": item.variant.size if item.variant else None,
             "quantity": item.quantity,
             "price": item.price_at_time,
             "subtotal": item.quantity * item.price_at_time

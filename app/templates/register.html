@@ -13,11 +13,12 @@
     </div>
 
     <div class="space-y-4">
-      <button type="button" onclick="alert('Coming soon...')"
-        class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
-        <span class="text-lg text-purple-400/60"><i class="fa-brands fa-google"></i></span>
-        <span class="font-semibold text-white">Sign up with Google</span>
+      <button type="button" onclick="oauthLogin('google', 'register')" class="w-full flex items-center justify-center gap-3 py-3 rounded-xl
+         border border-white/10 bg-white/5 hover:bg-white/10 transition">
+        <i class="fa-brands fa-google text-purple-400"></i>
+        <span class="font-semibold">Sign up with Google</span>
       </button>
+
       <button type="button" onclick="alert('Coming soon...')"
         class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
         <span class="text-lg text-purple-400/60"><i class="fa-brands fa-discord"></i></span>
@@ -190,7 +191,7 @@
   });
 
   // Form validation on input
-  document.getElementById("confirmPassword").addEventListener("input", function() {
+  document.getElementById("confirmPassword").addEventListener("input", function () {
     const password = document.getElementById("password").value;
     if (this.value && this.value !== password) {
       this.setCustomValidity("Passwords do not match");
@@ -199,7 +200,7 @@
     }
   });
 
-  document.getElementById("email").addEventListener("blur", function() {
+  document.getElementById("email").addEventListener("blur", function () {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (this.value && !emailRegex.test(this.value)) {
       this.setCustomValidity("Please enter a valid email address");

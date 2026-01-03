@@ -5,7 +5,7 @@
 <section class="max-w-5xl mx-auto px-6 py-24">
   <h1 class="text-4xl md:text-5xl font-bold text-center mb-6">Contact Us</h1>
   <p class="text-gray-400 text-lg text-center max-w-3xl mx-auto mb-14">
-    Have a question, feedback, or collaboration idea?  
+    Have a question, feedback, or collaboration idea?
     Drop us a message — we’d love to hear from you.
   </p>
 
@@ -13,8 +13,8 @@
 
     <form onsubmit="handleContact(event)" class="space-y-6">
       <div>
-        <label class="text-sm text-gray-300">Your Email</label>
-        <input type="email" required
+        <label class="text-sm text-gray-300" id="contactEmail">Your Email</label>
+        <input type="email" required id="contactMessage"
           class="w-full mt-2 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none">
       </div>
 
@@ -24,8 +24,7 @@
           class="w-full mt-2 p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
       </div>
 
-      <button
-        class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-semibold transition">
+      <button class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-semibold transition">
         Send Message
       </button>
     </form>
@@ -34,19 +33,31 @@
 
     <!-- Direct contact -->
     <div class="text-center text-gray-400 text-sm mt-8">
-      Or email us directly at  
+      Or email us directly at
       <a href="" onclick="navigator.clipboard.writeText('sniipe@gmail.com').then(() => {
         alert('E-mail copied!');
-    })"
-       class="appearance-none text-purple-400">sniipe.in@gmail.com</a>
+    })" class="appearance-none text-purple-400">sniipe.in@gmail.com</a>
     </div>
   </div>
 </section>
 
 <script>
-function handleContact(e) {
-  e.preventDefault();
-  SNIPE.showSuccess("Thanks! We'll get back to you soon.");
-}
+  function handleContact(e) {
+    e.preventDefault();
+
+    const email = document.getElementById("contactEmail").value;
+    const message = document.getElementById("contactMessage").value;
+
+    const businessNumber = "+917207701175"; // 👈 replace later
+    const text = encodeURIComponent(
+      `New Support Request:\n\nEmail: ${email}\n\nMessage: ${message}`
+    );
+
+    const whatsappURL = `https://wa.me/${businessNumber}?text=${text}`;
+    window.open(whatsappURL, "_blank");
+
+    SNIPE.showSuccess("Redirecting you to WhatsApp support...");
+  }
+
 </script>
 {% endblock %}
