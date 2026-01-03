@@ -189,7 +189,6 @@
       name: document.getElementById("pName").value,
       category: document.getElementById("pCategory").value,
       price: parseFloat(document.getElementById("pPrice").value || 0),
-      image_url: document.getElementById("pImage").value,
       description: document.getElementById("pDescription").value
     };
     const res = await fetch(editingId ? `/admin/api/products/${editingId}` : "/admin/api/products", {
