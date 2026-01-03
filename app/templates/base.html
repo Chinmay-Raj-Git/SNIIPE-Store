@@ -69,9 +69,13 @@
                     <a href="#" class="nav-link text-gray-100/30  cursor-not-allowed">Collections</a>
                     <a href="/profile" id="nav-profile" class="nav-link hover:text-purple-400">Profile</a>
                     <a href="/cart" id="nav-cart" class="nav-link hover:text-purple-400">Cart</a>
-                    <button id="logoutBtn" class="text-gray-400 hover:text-purple-500">
-                        Logout
+                    <button id="logoutBtn" class="text-red-400 hover:text-purple-500 hidden">
+                        LOGOUT
                     </button>
+                    <a href="/login-page" id="loginBtn" class="text-emerald-400 hover:text-purple-500">
+                        LOGIN
+                    </a>
+
                 </div>
 
                 <!-- Mobile Menu Button -->
@@ -90,8 +94,12 @@
             <a href="/profile" id="nav-profile-mobile" class="block py-2 nav-link">Profile</a>
             <a href="/cart" id="nav-cart-mobile" class="block py-2 nav-link">Cart</a>
 
-            <button id="logoutBtnMobile" class="mt-4 text-gray-400 hover:text-purple-500">
-                Logout
+            <a href="/login-page" id="loginBtnMobile" class="block py-2 text-emerald-400 hover:text-purple-500">
+                LOGIN
+            </a>
+
+            <button id="logoutBtnMobile" class="mt-4 text-red-400 hover:text-purple-500">
+                LOGOUT
             </button>
         </div>
     </header>
@@ -180,6 +188,42 @@
         function hideLoader() {
             document.getElementById("loader").classList.add("hidden");
         }
+
+        function updateAuthUI() {
+            const token = localStorage.getItem("access_token");
+
+            const loginBtn = document.getElementById("loginBtn");
+            const loginBtnMobile = document.getElementById("loginBtnMobile");
+
+            const logoutBtn = document.getElementById("logoutBtn");
+            const logoutBtnMobile = document.getElementById("logoutBtnMobile");
+
+            const profileNav = document.getElementById("nav-profile");
+            const profileNavMobile = document.getElementById("nav-profile-mobile");
+
+            if (token) {
+                // Logged IN
+                loginBtn?.classList.add("hidden");
+                loginBtnMobile?.classList.add("hidden");
+
+                logoutBtn?.classList.remove("hidden");
+                logoutBtnMobile?.classList.remove("hidden");
+
+                profileNav?.classList.remove("hidden");
+                profileNavMobile?.classList.remove("hidden");
+            } else {
+                // Logged OUT
+                loginBtn?.classList.remove("hidden");
+                loginBtnMobile?.classList.remove("hidden");
+
+                logoutBtn?.classList.add("hidden");
+                logoutBtnMobile?.classList.add("hidden");
+
+                profileNav?.classList.add("hidden");
+                profileNavMobile?.classList.add("hidden");
+            }
+        }
+
     </script>
 
     <div id="orderSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70">
@@ -220,6 +264,7 @@
             document.getElementById("orderSuccessModal").classList.add("hidden");
         }
     </script>
+
 
 
 
@@ -578,6 +623,9 @@
             menuBtn?.addEventListener("click", () => {
                 mobileMenu.classList.toggle("hidden");
             });
+
+            updateAuthUI();
+
         });
     </script>
 
