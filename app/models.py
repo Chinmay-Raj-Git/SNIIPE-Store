@@ -55,6 +55,9 @@ class Users(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
     
+    phone = db.Column(db.String(20), unique=True, nullable=True)
+    whatsapp_opt_in = db.Column(db.Boolean, default=True)
+    
     
 # -----------------------------
 # User Address SYSTEM

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Your Cart — SNIPE{% endblock %}
+{% block title %}Your Cart — SNIIPE{% endblock %}
 
 {% block content %}
 <section class="max-w-6xl mx-auto px-6 py-10">
@@ -257,7 +257,19 @@
     }
 
     document.getElementById("place-order-btn").addEventListener("click", () => {
-        openAddressModal({ type: "cart" });
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIIPE.goProtected("/home");
+            return;
+        }
+        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
+            if (!hasPhone) {
+                alert("Please add your phone number in your profile before proceeding.");
+                SNIIPE.goProtected("/profile");
+                return;
+            }
+            openAddressModal({ type: "cart" });
+        });
     });
 
     async function startCartCheckoutWithAddress(addressId) {

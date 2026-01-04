@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="max-w-4xl mx-auto px-4 py-14">
+    <h1 class="text-3xl md:text-4xl font-semibold mb-2 text-white">
+        {{ title }}
+    </h1>
+
+    <p class="text-sm text-gray-400 mb-8">
+        Last updated on {{ updated_on }}
+    </p>
+
+    <div class="space-y-10 text-gray-300 leading-relaxed">
+        {% block policy_content %}{% endblock %}
+    </div>
+</section>
+{% endblock %}

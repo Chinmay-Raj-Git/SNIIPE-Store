@@ -1,0 +1,31 @@
+{% extends "policies/_policy_base.html" %}
+
+{% set title = "Shipping & Delivery Policy" %}
+{% set updated_on = "Jan 3, 2026" %}
+
+{% block policy_content %}
+
+<section class="space-y-4">
+    <h2 class="text-xl font-semibold text-white">Shipping Overview</h2>
+    <p>
+        Orders are shipped using trusted courier partners through Shiprocket.
+    </p>
+</section>
+
+<section class="space-y-4">
+    <h2 class="text-xl font-semibold text-white">Delivery Timelines</h2>
+    <ul class="list-disc list-inside space-y-2">
+        <li>Delivery timelines vary by location.</li>
+        <li>Estimated delivery is shared after order confirmation.</li>
+    </ul>
+</section>
+
+<section class="space-y-4">
+    <h2 class="text-xl font-semibold text-white">Delays</h2>
+    <ul class="list-disc list-inside space-y-2">
+        <li>Delays may occur due to weather, courier, or operational issues.</li>
+        <li>SNIIPE Clothing is not liable for external delivery delays.</li>
+    </ul>
+</section>
+
+{% endblock %}

@@ -18,7 +18,7 @@ bp = Blueprint("routes", __name__)
 # HELPERS
 # ----------------------------------------------------------
 def cleanup_stale_pending_orders(user_id):
-    cutoff_time = datetime.utcnow() - timedelta(minutes=1)
+    cutoff_time = datetime.utcnow() - timedelta(minutes=30)
 
     stale_orders = Order.query.filter(
         and_(
@@ -444,7 +444,9 @@ def get_profile():
         "id": str(user.id),
         "email": user.email,
         "name": user.name,
-        "created_at": user.created_at
+        "created_at": user.created_at,
+        "phone": user.phone,
+        "whatsapp_opt_in": user.whatsapp_opt_in
     }), 200
 
 # -----------------------------
@@ -456,6 +458,8 @@ def update_profile():
     user = g.user
     data = request.json
     user.name = data.get("name", user.name)
+    user.phone = data.get("phone", user.phone)
+    user.whatsapp_opt_in = data.get("whatsapp_opt_in", user.whatsapp_opt_in)
     db.session.commit()
     return jsonify({"message": "Profile updated successfully"})
 
@@ -1085,6 +1089,13 @@ def create_razorpay_order():
         id=order_id,
         user_id=g.user.id
     ).first_or_404()
+    
+    if not g.user.phone:
+        return jsonify({
+            "error": "PHONE_REQUIRED",
+            "message": "Please add your WhatsApp number before checkout"
+        }), 400
+
 
     if order.status != "pending_payment":
         return jsonify({"error": "Invalid order state"}), 400
@@ -1147,6 +1158,11 @@ def verify_razorpay_payment():
     order.razorpay_payment_id = data["razorpay_payment_id"]
     
     db.session.commit()  # commit payment first (important)
+    
+    # 🔔 Notify admin via email (NON-BLOCKING)
+    from app.email_utils import send_admin_order_email
+    send_admin_order_email(order)
+
 
     # 🔁 AUTO CREATE SHIPMENT
     try:
@@ -1493,3 +1509,25 @@ def faq_page():
 def forgot_page():
     return render_template("forgot_password.html")
 
+# -----------------------------
+# POLICIES
+# -----------------------------
+@bp.route("/terms")
+def terms():
+    return render_template("policies/terms.html")
+
+@bp.route("/privacy")
+def privacy():
+    return render_template("policies/privacy.html")
+
+@bp.route("/refund")
+def refund():
+    return render_template("policies/refund.html")
+
+@bp.route("/shipping")
+def shipping():
+    return render_template("policies/shipping.html")
+
+@bp.route("/cancellations")
+def cancellations():
+    return render_template("policies/cancellations.html")

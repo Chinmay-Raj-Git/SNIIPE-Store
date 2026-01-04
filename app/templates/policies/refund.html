@@ -1,0 +1,26 @@
+{% extends "policies/_policy_base.html" %}
+
+{% set title = "Return & Refund Policy" %}
+{% set updated_on = "Jan 3, 2026" %}
+
+{% block policy_content %}
+
+<section class="space-y-4">
+    <h2 class="text-xl font-semibold text-white">Refund Policy</h2>
+    <ul class="list-disc list-inside space-y-2">
+        <li>Returns and refunds are not available at the moment.</li>
+        <li>Please verify product details carefully before ordering.</li>
+    </ul>
+</section>
+
+<section class="space-y-4">
+    <h2 class="text-xl font-semibold text-white">Exchange Policy</h2>
+    <ul class="list-disc list-inside space-y-2">
+        <li>Exchanges allowed only for size issues.</li>
+        <li>Request must be raised within 24 hours.</li>
+        <li>₹200 exchange fee applies.</li>
+        <li>One-time exchange only.</li>
+    </ul>
+</section>
+
+{% endblock %}

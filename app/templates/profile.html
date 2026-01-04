@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Profile — SNIPE{% endblock %}
+{% block title %}My Profile — SNIIPE{% endblock %}
 
 {% block content %}
 
@@ -51,7 +51,26 @@
                     <input type="text" id="name"
                         class="w-full p-3 pl-12 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none transition"
                         placeholder="Enter your name">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">👤</span>
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500"><i
+                            class="fa-regular fa-user"></i></span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-sm text-gray-300 uppercase tracking-wide">WhatsApp Number</label>
+                <p class="text-sm text-gray-500 mb-3">
+                    &nbsp&nbspUsed for order updates, offers and support only.
+                </p>
+                <div class="relative">
+                    <input type="tel" name="phoneWp" required placeholder="" id="phoneWp"
+                        class="w-full p-3 pl-20 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none transition" />
+                    <span class="absolute left-12 top-[1.55rem] -translate-y-1/2 text-gray-400">+91</span>
+                    <span class="absolute left-5 top-6 text-lg -translate-y-1/2 text-gray-500"><i
+                            class="fa-brands fa-whatsapp"></i></span>
+                    <label class="flex items-center gap-2 my-2 text-sm text-gray-300 mt-3 mb-3">
+                        <input type="checkbox" id="whatsapp_opt_in" name="whatsapp_opt_in" />
+                        I agree to receive order updates on WhatsApp
+                    </label>
                 </div>
             </div>
 
@@ -182,6 +201,10 @@
         `;
 
             document.getElementById("name").value = data.name || "";
+            document.getElementById("phoneWp").value = data.phone || "";
+            console.log("Phone:", data);
+            // console.log("WhatsApp Opt-In:", data.whatsapp_opt_in);
+            document.getElementById("whatsapp_opt_in").checked = data.whatsapp_opt_in || false;
         } catch (error) {
             console.error("Failed to load profile:", error);
             localStorage.removeItem("access_token");
@@ -310,26 +333,39 @@
         e.preventDefault();
         const token = localStorage.getItem("access_token");
         if (!token) {
-            SNIPE.goProtected("/profile");
+            SNIIPE.goProtected("/profile");
             return;
         }
 
         const submitBtn = e.target.querySelector("button[type='submit']");
         const name = document.getElementById("name").value.trim();
+        const phone = document.getElementById("phoneWp").value.trim();
+        const whatsappOptIn = document.getElementById("whatsapp_opt_in").checked;
 
         // Client-side validation
         if (!name) {
-            SNIPE.showError("Name cannot be empty.", "msg");
+            SNIIPE.showError("Name cannot be empty.", "msg");
             return;
         }
-
         if (name.length < 2) {
-            SNIPE.showError("Name must be at least 2 characters long.", "msg");
+            SNIIPE.showError("Name must be at least 2 characters long.", "msg");
+            return;
+        }
+        if (!phone) {
+            SNIIPE.showError("WhatsApp number cannot be empty.", "msg");
+            return;
+        }
+        if (!/^\d{10}$/.test(phone)) {
+            SNIIPE.showError("Please enter a valid 10-digit WhatsApp number.", "msg");
+            return;
+        }
+        if (!whatsappOptIn) {
+            SNIIPE.showError("You must agree to receive order updates on WhatsApp.", "msg");
             return;
         }
 
         // Show loading state
-        SNIPE.showLoading(submitBtn, "Saving...");
+        SNIIPE.showLoading(submitBtn, "Saving...");
 
         try {
             const res = await fetch("/profile/me", {
@@ -338,28 +374,32 @@
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + token
                 },
-                body: JSON.stringify({ name: name })
+                body: JSON.stringify({ 
+                    name: name,
+                    phone: phone,
+                    whatsapp_opt_in: whatsappOptIn
+                })
             });
 
             const data = await res.json();
 
             if (!res.ok) {
                 if (res.status === 401) {
-                    SNIPE.showError("Session expired. Please login again.", "msg");
+                    SNIIPE.showError("Session expired. Please login again.", "msg");
                     setTimeout(() => {
                         localStorage.removeItem("access_token");
                         window.location.href = "/login-page";
                     }, 2000);
                     return;
                 } else if (res.status === 400) {
-                    SNIPE.showError(data.error || "Invalid input.", "msg");
+                    SNIIPE.showError(data.error || "Invalid input.", "msg");
                 } else {
-                    SNIPE.showError(data.error || "Failed to update profile.", "msg");
+                    SNIIPE.showError(data.error || "Failed to update profile.", "msg");
                 }
                 return;
             }
 
-            SNIPE.showSuccess(data.message || "Profile updated successfully!", "msg");
+            SNIIPE.showSuccess(data.message || "Profile updated successfully!", "msg");
 
             // Update user initial
             if (name) {
@@ -371,9 +411,9 @@
 
         } catch (error) {
             console.error("Profile update error:", error);
-            SNIPE.showError("Network error. Please try again.", "msg");
+            SNIIPE.showError("Network error. Please try again.", "msg");
         } finally {
-            SNIPE.hideLoading(submitBtn);
+            SNIIPE.hideLoading(submitBtn);
         }
     });
 

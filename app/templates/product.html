@@ -308,7 +308,7 @@
         const token = localStorage.getItem("access_token");
 
         try {
-            SNIPE.showLoading(buyBtn, "Processing...");
+            SNIIPE.showLoading(buyBtn, "Processing...");
             // 1. Create Razorpay order
             const res = await fetch("/payments/razorpay/create-order", {
                 method: "POST",
@@ -537,37 +537,37 @@
     async function addToCart() {
         const token = localStorage.getItem("access_token");
         if (!token) {
-            SNIPE.goProtected("/cart-page");
+            SNIIPE.goProtected("/cart-page");
             return;
         }
 
         const variant = findVariant();
 
         if (!variant) {
-            SNIPE.showError("Please select a color and size.", "actionMessage");
+            SNIIPE.showError("Please select a color and size.", "actionMessage");
             return;
         }
 
         if (variant.stock <= 0) {
-            SNIPE.showError("Selected variant is out of stock.", "actionMessage");
+            SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
             return;
         }
 
         const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
 
         if (quantity <= 0) {
-            SNIPE.showError("Quantity is invalid.", "actionMessage");
+            SNIIPE.showError("Quantity is invalid.", "actionMessage");
             return;
         }
 
         if (quantity > variant.stock) {
-            SNIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
+            SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
             return;
         }
 
         // Show loading state
-        SNIPE.showLoading(addBtn, "Adding...");
-        SNIPE.showLoading(buyBtn, "Adding...");
+        SNIIPE.showLoading(addBtn, "Adding...");
+        SNIIPE.showLoading(buyBtn, "Adding...");
 
         try {
             const res = await fetch("/cart/add", {
@@ -588,21 +588,21 @@
             if (!res.ok) {
                 // Handle error responses
                 if (res.status === 401) {
-                    SNIPE.showError("Session expired. Please login again.", "actionMessage");
+                    SNIIPE.showError("Session expired. Please login again.", "actionMessage");
                     setTimeout(() => {
                         localStorage.removeItem("access_token");
                         window.location.href = "/login-page";
                     }, 2000);
                 } else if (res.status === 400) {
-                    SNIPE.showError(data.error || "Invalid request.", "actionMessage");
+                    SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
                 } else {
-                    SNIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
+                    SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
                 }
                 return;
             }
 
             // Success case
-            SNIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+            SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
 
             // Update stock display
             selectedVariant.stock -= quantity;
@@ -610,27 +610,38 @@
 
         } catch (error) {
             console.error("Add to cart error:", error);
-            SNIPE.showError("Network error. Please try again.", "actionMessage");
+            SNIIPE.showError("Network error. Please try again.", "actionMessage");
         } finally {
-            SNIPE.hideLoading(addBtn);
-            SNIPE.hideLoading(buyBtn);
+            SNIIPE.hideLoading(addBtn);
+            SNIIPE.hideLoading(buyBtn);
         }
     }
 
     function buyNow(productId, variantId, quantity) {
         const token = localStorage.getItem("access_token");
         if (!token) {
-            SNIPE.goProtected("/home");
+            SNIIPE.goProtected("/home");
             return;
         }
-        openAddressModal({
-            type: "buy_now",
-            payload: { productId, variantId, quantity }
+        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
+            if (!hasPhone) {
+                alert("Please add your phone number in your profile before proceeding.");
+                SNIIPE.goProtected("/profile");
+                return;
+            }
+            openAddressModal({
+                type: "buy_now",
+                payload: { productId, variantId, quantity }
+            });
         });
+        // openAddressModal({
+        //     type: "buy_now",
+        //     payload: { productId, variantId, quantity }
+        // });
     }
 
     async function startBuyNowWithAddress(addressId, payload) {
-        SNIPE.showLoading(buyBtn, "Processing...");
+        SNIIPE.showLoading(buyBtn, "Processing...");
         const token = localStorage.getItem("access_token");
 
         const res = await fetch("/checkout/razorpay/buy-now", {

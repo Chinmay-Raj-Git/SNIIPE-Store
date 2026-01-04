@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Register — SNIPE{% endblock %}
+{% block title %}Register — SNIIPE{% endblock %}
 
 {% block content %}
 <section class="flex justify-center items-center min-h-screen px-6 py-10">
@@ -17,12 +17,6 @@
          border border-white/10 bg-white/5 hover:bg-white/10 transition">
         <i class="fa-brands fa-google text-purple-400"></i>
         <span class="font-semibold">Sign up with Google</span>
-      </button>
-
-      <button type="button" onclick="alert('Coming soon...')"
-        class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
-        <span class="text-lg text-purple-400/60"><i class="fa-brands fa-discord"></i></span>
-        <span class="font-semibold text-white">Sign up with Discord</span>
       </button>
     </div>
 
@@ -148,12 +142,12 @@
 
     // Client-side validation
     if (password !== confirmPassword) {
-      SNIPE.showError("Passwords do not match.");
+      SNIIPE.showError("Passwords do not match.");
       return;
     }
 
     if (password.length < 6) {
-      SNIPE.showError("Password must be at least 6 characters long.");
+      SNIIPE.showError("Password must be at least 6 characters long.");
       return;
     }
 
@@ -161,7 +155,7 @@
     const email = document.getElementById("email").value;
 
     // Show loading state
-    SNIPE.showLoading(submitBtn, "Creating account...");
+    SNIIPE.showLoading(submitBtn, "Creating account...");
 
     try {
       const res = await fetch("/register", {
@@ -177,16 +171,16 @@
       const data = await res.json();
 
       if (res.ok) {
-        SNIPE.showSuccess(data.message || "Account created successfully!");
+        SNIIPE.showSuccess(data.message || "Account created successfully!");
         setTimeout(() => window.location.href = "/verify-email", 1500);
       } else {
-        SNIPE.showError(data.error || "Registration failed. Please try again.");
+        SNIIPE.showError(data.error || "Registration failed. Please try again.");
       }
     } catch (error) {
       console.error("Registration error:", error);
-      SNIPE.showError("Network error. Please check your connection and try again.");
+      SNIIPE.showError("Network error. Please check your connection and try again.");
     } finally {
-      SNIPE.hideLoading(submitBtn);
+      SNIIPE.hideLoading(submitBtn);
     }
   });
 

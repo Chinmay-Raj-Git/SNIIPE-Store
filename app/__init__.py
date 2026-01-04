@@ -22,6 +22,12 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['RAZORPAY_KEY_ID'] = os.getenv("RAZORPAY_KEY_ID")
     app.config['RAZORPAY_KEY_SECRET'] = os.getenv("RAZORPAY_KEY_SECRET")
+    app.config["SMTP_HOST"] = os.getenv("SMTP_HOST")
+    app.config["SMTP_PORT"] = int(os.getenv("SMTP_PORT", 587))
+    app.config["SMTP_USERNAME"] = os.getenv("SMTP_USERNAME")
+    app.config["SMTP_PASSWORD"] = os.getenv("SMTP_PASSWORD")
+    app.config["ADMIN_NOTIFICATION_EMAIL"] = os.getenv("ADMIN_NOTIFICATION_EMAIL")
+
 
 
     db.init_app(app)
