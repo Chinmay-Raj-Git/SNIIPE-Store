@@ -97,14 +97,14 @@
 
 <script>
   async function exportData(type) {
-    // const token = localStorage.getItem("admin_token");
-    // if (!token) {
-    //   window.location.href = "/admin/login";
-    //   return;
-    // }
-    // const res = await fetch(`/admin/export?type=${type}`, {
-    //   headers: { "Authorization": "Bearer " + token }
-    // });
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      window.location.href = "/admin/login";
+      return;
+    }
+    const res = await fetch(`/admin/export?type=${type}`, {
+      headers: { "Authorization": "Bearer " + token }
+    });
     window.location.href = `/admin/export?type=${type}`;
   }
 
