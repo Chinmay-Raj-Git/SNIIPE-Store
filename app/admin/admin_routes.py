@@ -720,7 +720,7 @@ def admin_users():
 # ADMIN EXPORTS API
 # ───────────────────────────────────────────────
 @admin_bp.route("/export", methods=["GET"])
-# @require_admin
+@require_admin
 def export_data():
     export_type = request.args.get("type", "all")
 
