@@ -3,25 +3,46 @@
 
 {% block content %}
 <div class="flex flex-col gap-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <p class="text-sm uppercase tracking-[0.2em] text-purple-300/80">Product</p>
-      <h1 id="productName" class="text-3xl font-bold mt-1">Loading...</h1>
-      <p id="productCategory" class="text-gray-400 text-sm mt-1"></p>
+
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="flex flex-row justify-between">
+      <div>
+        <p class="text-sm uppercase tracking-[0.2em] text-purple-300/80">Product</p>
+        <h1 id="productName" class="text-3xl font-bold mt-1">Loading...</h1>
+        <p id="productCategory" class="text-gray-400 text-sm mt-1"></p>
+      </div>
+      <button onclick="window.location.href='/admin/products'"
+        class="ml-4 my-6 px-4 h-auto w-auto bg-white/5 hover:bg-white/10 rounded-lg border border-white/10">
+        ← Back
+      </button>
     </div>
-    <div class="flex gap-2">
-      <button onclick="goBack()" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10">←
-        Back</button>
+
+    <div class="flex flex-col sm:flex-row gap-2">
+
       <button id="saveBtn"
-        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-semibold shadow-lg shadow-purple-500/20">Save
-        Changes</button>
-      <button id="deleteBtn"
-        class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded-lg">Delete
-        Product</button>
+        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold">
+        Save Changes
+      </button>
     </div>
   </div>
 
+  <!-- Product Info Section-->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Product Preview -->
+    <div class="bg-black/50 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
+      <div>
+        <p class="text-lg font-semibold text-white mt-1" id="previewName"></p>
+        <p class="text-sm text-gray-400">Preview</p>
+      </div>
+      <img id="productImage" src=""
+        class="w-full aspect-[4/5] object-cover rounded-xl border border-white/10" />
+
+      <p class="text-purple-300 font-bold" id="previewPrice"></p>
+    </div>
+
+    <!-- Product Details -->
     <div class="lg:col-span-2 bg-black/50 border border-white/10 rounded-2xl p-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-3">
@@ -41,84 +62,79 @@
         </div>
         <div class="space-y-3 md:col-span-2">
           <label class="text-sm text-gray-300">Description</label>
-          <textarea id="fDescription" rows="4"
+          <textarea id="fDescription" rows="8"
             class="w-full p-3 rounded-xl bg-black/60 border border-white/10 focus:border-purple-500 outline-none"></textarea>
         </div>
       </div>
     </div>
-    <div class="bg-black/50 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
-      <div>
-        <p class="text-lg font-semibold text-white mt-1" id="previewName"></p>
-        <p class="text-sm text-gray-400">Preview</p>
-      </div>
-      <img id="productImage" src="" class="w-auto h-[275px] object-cover rounded-xl border border-white/10">
-      <p class="text-purple-300 font-bold" id="previewPrice"></p>
 
-
-    </div>
   </div>
 
+  <!-- Variants -->
   <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h2 class="text-xl font-semibold">Variants</h2>
-        <p class="text-gray-400 text-sm">Manage size/color, stock and pricing</p>
-      </div>
-      <button onclick="openVariantModal()"
-        class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">+ Add
+    <div class="flex justify-between mb-4">
+      <h2 class="text-xl font-semibold">Variants</h2>
+      <button onclick="openVariantModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg">+ Add
         Variant</button>
     </div>
-    <div class="overflow-x-auto">
+
+    <!-- Variant Cards - Mobile -->
+    <div class="md:hidden space-y-4" id="variantCards"></div>
+
+    <!-- Variant Table - Desktop -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="min-w-full text-left text-sm">
-        <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
+        <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
           <tr>
             <th class="px-4 py-3">Color</th>
             <th class="px-4 py-3">Size</th>
             <th class="px-4 py-3">Stock</th>
-            <th class="px-4 py-3">Override Price</th>
+            <th class="px-4 py-3">Price</th>
             <th class="px-4 py-3">Actions</th>
           </tr>
         </thead>
         <tbody id="variantsTable" class="divide-y divide-white/5">
-          <tr>
-            <td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading variants...</td>
-          </tr>
+          <td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading variants...</td>
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Product Images -->
   <div class="bg-black/50 border border-white/10 rounded-2xl p-6">
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h2 class="text-xl font-semibold">Product Images</h2>
-        <p class="text-gray-400 text-sm">Gallery, Primary & Thumbnail images</p>
-      </div>
+    <div class="flex justify-between mb-4">
+      <h2 class="text-xl font-semibold">Product Images</h2>
+
       <button onclick="openImageModal()"
         class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 text-sm font-semibold">
         + Add Image
       </button>
     </div>
 
-    <!-- GALLERY -->
-    <div>
-      <h3 class="text-sm text-gray-400 mb-2">Gallery</h3>
-      <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    <h3 class="text-sm text-gray-400 mb-2">Gallery</h3>
+    <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-6 overflow-hidden">
     </div>
 
-    <!-- PRIMARY -->
-    <div class="mb-6">
-      <h3 class="text-sm text-gray-400 mb-2">Primary Images</h3>
-      <div id="primaryImages"
-        class="h-40 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
-    </div>
 
-    <!-- THUMBNAIL -->
-    <div class="mb-6">
-      <h3 class="text-sm text-gray-400 mb-2">Thumbnail</h3>
-      <div id="thumbnailImage"
-        class="h-32 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
-    </div>
+    <h3 class="text-sm text-gray-400 mb-2">Primary Images</h3>
+    <div id="primaryImages"
+      class="h-auto w-fit p-4 border border-dashed border-white/10 rounded-xl flex items-center justify-center mb-6"></div>
+
+    <h3 class="text-sm text-gray-400 mb-2">Thumbnail</h3>
+    <div id="thumbnailImage"
+      class="h-auto w-fit p-4 border border-dashed border-white/10 rounded-xl flex items-center justify-center"></div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="bg-red-600/5 border border-red-500/20 rounded-2xl p-6">
+    <h3 class="text-red-400 font-semibold mb-2">Danger Zone</h3>
+    <p class="text-gray-400 text-sm mb-4">
+      Deleting a product is permanent and cannot be undone.
+    </p>
+    <button id="deleteBtn"
+      class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded-lg">
+      Delete Product
+    </button>
   </div>
 
 
@@ -126,7 +142,8 @@
 
 <!-- Variant Modal -->
 <div id="variantModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-  <div class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+  <div
+    class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
       <h3 id="variantModalTitle" class="text-xl font-bold">Add Variant</h3>
       <button onclick="closeVariantModal()" class="text-gray-400 hover:text-white transition">✕</button>
@@ -182,7 +199,7 @@
 
 <!--Add-Image Modal -->
 <div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-  <div class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+  <div class="bg-black/90 border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
       <h3 id="imageModalTitle" class="text-xl font-bold">Add Image</h3>
       <button onclick="closeImageModal()" class="text-gray-400 hover:text-white transition">✕</button>
@@ -255,74 +272,129 @@
 
   function renderVariants(variants) {
     const tbody = document.getElementById("variantsTable");
+    const cards = document.getElementById("variantCards");
+
+    // ---------- Desktop ----------
     if (!variants.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No variants yet.</td></tr>`;
+      tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="px-4 py-6 text-center text-gray-400">
+          No variants yet.
+        </td>
+      </tr>`;
+    } else {
+      tbody.innerHTML = variants.map(v => `
+      <tr class="hover:bg-white/5 transition">
+        <td class="px-4 py-3 text-white">${v.color}</td>
+        <td class="px-4 py-3 text-white">${v.size || "—"}</td>
+        <td class="px-4 py-3 text-gray-200">${v.stock}</td>
+        <td class="px-4 py-3 text-purple-300">
+          ${v.price_override ? "₹" + v.price_override : "—"}
+        </td>
+        <td class="px-4 py-3 flex gap-2">
+          <button onclick="editVariant(${v.id})"
+            class="px-3 py-2 bg-blue-600/20 border border-blue-500/30 text-blue-300 rounded-lg text-sm">
+            Edit
+          </button>
+          <button onclick="deleteVariant(${v.id})"
+            class="px-3 py-2 bg-red-600/20 border border-red-500/30 text-red-300 rounded-lg text-sm">
+            Delete
+          </button>
+        </td>
+      </tr>
+    `).join("");
+    }
+
+    // ---------- Mobile ----------
+    if (!variants.length) {
+      cards.innerHTML = `<p class="text-gray-400 text-center">No variants yet.</p>`;
       return;
     }
-    tbody.innerHTML = variants.map(v => `
-    <tr class="hover:bg-white/5 transition">
-      <td class="px-4 py-3 text-white">${v.color}</td>
-      <td class="px-4 py-3 text-white">${v.size}</td>
-      <td class="px-4 py-3 text-gray-200">${v.stock}</td>
-      <td class="px-4 py-3 text-purple-300">${v.price_override ? '₹' + v.price_override : '—'}</td>
-      <td class="px-4 py-3 flex gap-2">
-        <button onclick="editVariant(${v.id})" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">Edit</button>
-        <button onclick="deleteVariant(${v.id})" class="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm">Delete</button>
-      </td>
-    </tr>
+
+    cards.innerHTML = variants.map(v => `
+    <div class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <p class="font-semibold text-white">${v.color}</p>
+        <span class="text-xs text-gray-400">${v.size || "Free size"}</span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-400">Stock</span>
+        <span class="text-gray-200">${v.stock}</span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-400">Price</span>
+        <span class="text-purple-300 font-semibold">
+          ${v.price_override ? "₹" + v.price_override : "Base"}
+        </span>
+      </div>
+
+      <div class="flex gap-2 mt-3">
+        <button onclick="editVariant(${v.id})"
+          class="flex-1 px-3 py-2 bg-blue-600/20 border border-blue-500/30 text-blue-300 rounded-lg text-sm">
+          Edit
+        </button>
+        <button onclick="deleteVariant(${v.id})"
+          class="flex-1 px-3 py-2 bg-red-600/20 border border-red-500/30 text-red-300 rounded-lg text-sm">
+          Delete
+        </button>
+      </div>
+    </div>
   `).join("");
   }
 
+
   function renderImages(images) {
-  // PRODUCT-LEVEL THUMBNAIL (one)
-  const thumbnail = images.find(i => i.role === "thumbnail");
+    // PRODUCT-LEVEL THUMBNAIL (one)
+    const thumbnail = images.find(i => i.role === "thumbnail");
 
-  // COLOR-LEVEL PRIMARIES (many)
-  const primariesByColor = {};
-  images
-    .filter(i => i.role === "primary")
-    .forEach(img => {
-      primariesByColor[img.color] = img;
-    });
+    // COLOR-LEVEL PRIMARIES (many)
+    const primariesByColor = {};
+    images
+      .filter(i => i.role === "primary")
+      .forEach(img => {
+        primariesByColor[img.color] = img;
+      });
 
-  // GALLERY
-  const gallery = images.filter(i => i.role === "gallery");
+    // GALLERY
+    const gallery = images.filter(i => i.role === "gallery");
 
-  // Right-side preview image
-  document.getElementById("productImage").src =
-    thumbnail
-      ? thumbnail.image_url
-      : Object.values(primariesByColor)[0]?.image_url
+    // Right-side preview image
+    document.getElementById("productImage").src =
+      thumbnail
+        ? thumbnail.image_url
+        : Object.values(primariesByColor)[0]?.image_url
         || '/static/img/placeholder.webp';
 
-  // PRIMARY IMAGES (MULTIPLE)
-  const primaryContainer = document.getElementById("primaryImages");
+    // PRIMARY IMAGES (MULTIPLE)
+    const primaryContainer = document.getElementById("primaryImages");
 
-  if (Object.keys(primariesByColor).length) {
-    primaryContainer.innerHTML = Object.entries(primariesByColor)
-      .map(([color, img]) => `
+    if (Object.keys(primariesByColor).length) {
+      primaryContainer.innerHTML = Object.entries(primariesByColor)
+        .map(([color, img]) => `
         <div class="flex flex-col gap-1">
           <p class="text-xs text-gray-400">${color}</p>
           ${imageCard(img)}
         </div>
       `)
-      .join("");
-  } else {
-    primaryContainer.innerHTML = emptySlot("No primary images set");
+        .join("");
+    } else {
+      primaryContainer.innerHTML = emptySlot("No primary images set");
+    }
+
+    // THUMBNAIL
+    document.getElementById("thumbnailImage").innerHTML =
+      thumbnail
+        ? imageCard(thumbnail)
+        : emptySlot("Thumbnail not set");
+
+    // GALLERY
+    document.getElementById("galleryGrid").innerHTML =
+      gallery.length
+        ? gallery.map(imageCard).join("")
+        : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
   }
-
-  // THUMBNAIL
-  document.getElementById("thumbnailImage").innerHTML =
-    thumbnail
-      ? imageCard(thumbnail)
-      : emptySlot("Thumbnail not set");
-
-  // GALLERY
-  document.getElementById("galleryGrid").innerHTML =
-    gallery.length
-      ? gallery.map(imageCard).join("")
-      : `<p class="text-gray-500 col-span-full">No gallery images</p>`;
-}
 
 
   document.getElementById("imageFiles").addEventListener("change", (e) => {
@@ -359,7 +431,8 @@
   function imageCard(img) {
     return `
   <div class="relative group">
-    <img src="${img.image_url}" class="w-full h-40 object-cover rounded-xl border border-white/10">
+    <img src="${img.image_url}" class="w-full h-40 md:h-80 aspect-square object-cover rounded-xl border border-white/10"/>
+
     <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
       <button data-id="${img.id}" onclick='openImageModal(${JSON.stringify(img)})'
  class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 rounded-lg text-sm">

@@ -19,7 +19,6 @@ def serialize(obj):
         return float(obj)
     return obj
 
-
 def build_shiprocket_order_payload(order):
     return {
         "order_id": str(order.id),
@@ -720,7 +719,7 @@ def admin_users():
 # ADMIN EXPORTS API
 # ───────────────────────────────────────────────
 @admin_bp.route("/export", methods=["GET"])
-# @require_admin
+@require_admin
 def export_data():
     export_type = request.args.get("type", "all")
 
@@ -903,6 +902,9 @@ def admin_sync_shipment(order_id):
     # ───────────────────────────────────────────────
     if awb and order.status == "shipping_created":
         order.status = "awb_assigned"
+        
+    if "shipped" in raw_status:
+        order.status = "shipped"
 
     if "in transit" in raw_status:
         order.status = "in_transit"

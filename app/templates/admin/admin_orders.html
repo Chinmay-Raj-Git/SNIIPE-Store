@@ -2,6 +2,16 @@
 {% block title %}Orders — Admin{% endblock %}
 
 {% block content %}
+
+{% set STATUS_LABELS = {
+"payment_pending": "Payment Pending",
+"paid": "Paid",
+"shipping_created": "Shipping Created",
+"awb_assigned": "AWB Assigned",
+"in_transit": "In Transit",
+"delivered": "Delivered"
+} %}
+
 <!-- PAGE HEADER -->
 <div class="mb-8">
   <h1 class="text-3xl font-bold mb-2">Orders</h1>
@@ -28,9 +38,70 @@
   </ul>
 </div>
 
+<!-- Mobile Orders -->
+<div class="space-y-2 md:hidden">
+  {% for order in orders %}
+  <div class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+
+    <div class="flex flex-col justify-start items-start mb-4">
+      <p class="font-semibold text-white">
+        {{ order.user.name or "Unnamed User" }}
+      </p>
+      <p class="text-xs text-gray-400 mt-0.5">
+        {{ order.user.email }}
+      </p>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <span class="text-gray-400 text-xs uppercase">Order</span>
+      <span class="text-white font-semibold">#{{ order.id }}</span>
+    </div>
+
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-400">Amount</span>
+      <span class="text-purple-300 font-semibold">₹{{ order.total_amount }}</span>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <span class="text-gray-400 text-sm">Status</span>
+
+      {% if order.status in ["paid","shipping_created","awb_assigned","in_transit","delivered"] %}
+      <span class="px-3 py-1 rounded-full text-xs bg-green-600/20 text-green-400 border border-green-500/30">
+        {{ STATUS_LABELS.get(order.status) }}
+      </span>
+      {% else %}
+      <p class="text-gray-500 text-xs">Shipping not created</p>
+      </span>
+      {% endif %}
+    </div>
+    <form method="POST" action="/admin/orders/{{ order.id }}/create-shipment">
+
+      <a href="/admin/orders/{{ order.id }}" class="mt-2 block text-center py-2 rounded-lg border border-purple-500/40
+             bg-purple-500 font-semibold hover:bg-purple-500/10 transition">
+        View Order
+      </a>
+
+      <button type="submit" class="w-full mt-2 block text-center py-2 rounded-lg border border-purple-500/40
+             font-semibold hover:bg-purple-500/10 transition
+             {% if order.status != 'paid' %}
+             text-gray-400 cursor-not-allowed opacity-60
+             {% else %}
+             text-purple-400 hover:bg-purple-500/10
+             {% endif %}"
+          {% if order.status !='paid' %} disabled {% endif %}>
+          {% if order.status !='paid' %} Cannot Create Shipment
+          {% else %} Create Shipment
+          {% endif %}
+      </button>
+
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
 
 <!-- ORDERS TABLE CARD -->
-<div class="bg-black/50 border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden">
+<div class="bg-black/50 border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden hidden md:block">
   <div class="overflow-x-auto">
     <table class="min-w-full text-sm">
       <thead class="bg-white/5 uppercase text-gray-400 tracking-wide text-xs">
@@ -39,7 +110,7 @@
           <th class="px-4 py-3">Customer</th>
           <th class="px-4 py-3">Amount</th>
           <th class="px-4 py-3">Payment</th>
-          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Shipping Status</th>
           <th class="px-4 py-3 text-right">Action</th>
         </tr>
       </thead>
@@ -90,16 +161,19 @@
           </td>
 
           <!-- SHIPPING -->
-          <td class="px-4 py-4 text-sm text-gray-300">
+          <td class="px-4 py-4 text-sm">
             {% if order.shipping_order_id %}
-            <p>AWB: {{ order.awb_code or "—" }}</p>
-            <p class="text-xs text-gray-400">
-              {{ order.courier_name or "Not assigned" }}
+            <p class="text-white">
+              {{ STATUS_LABELS.get(order.status) }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              AWB: {{ order.awb_code or "—" }} • {{ order.courier_name or "Not assigned" }}
             </p>
             {% else %}
-            <p class="text-gray-500 text-xs">Not created</p>
+            <p class="text-gray-500 text-xs">Shipping not created</p>
             {% endif %}
           </td>
+
 
           <!-- ACTION -->
           <td class="px-4 py-4 text-right">
@@ -147,22 +221,18 @@
         alert(data.message || "Failed to sync shipment");
       }
     } catch (e) {
-      // silent failure
+      if (!silent) alert("Network error while syncing shipment");
     }
   }
 
-  // 🔁 AUTO-SYNC ON PAGE LOAD
   document.addEventListener("DOMContentLoaded", () => {
     const rows = document.querySelectorAll("tr[data-can-sync='true']");
-
-    // limit auto-sync to avoid hammering API
     const MAX_AUTO_SYNC = 5;
 
     rows.forEach((row, index) => {
       if (index >= MAX_AUTO_SYNC) return;
-
       const orderId = row.dataset.orderId;
-      syncShipment(orderId, true);
+      if (orderId) syncShipment(orderId, true);
     });
   });
 </script>

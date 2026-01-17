@@ -5,6 +5,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Admin Dashboard{% endblock %} — SNIPE</title>
+  <!-- <link rel="icon" href="/images/favicon.ico" type="image/x-icon"> -->
+  <!-- Or for PNG: -->
+  <link rel="icon" href="{{ url_for('static', filename='images/bird.png') }}" type="image/png">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -16,81 +20,100 @@
 </head>
 
 <body class="font-sans">
-  <!-- SIDEBAR -->
-  <aside
-    class="w-64 h-screen bg-black/50 backdrop-blur-xl border-r border-white/10 p-6 fixed top-0 left-0 z-40 flex flex-col">
-    <div class="mb-8 cursor-pointer" onclick="window.location.href = '/admin'">
-      <h2 class="text-4xl font-bold tracking-tight mb-1">
-        <span class="text-white">SN</span><span class="text-purple-500">II</span><span class="text-white">PE</span>
-      </h2>
-      <p class="text-md text-gray-400 uppercase tracking-wide">Admin Panel</p>
-    </div>
-    <hr class="mb-4 border-white/10">
 
-    <nav class="flex-1 space-y-2">
+  <!-- HEADER -->
+  <header
+    class="fixed top-0 left-0 right-0 h-16 bg-black/60 backdrop-blur-xl border-b border-white/10 z-50 flex items-center px-4">
+
+    <!-- Grid / Toggle Button -->
+    <button onclick="toggleSidebar()" class="hover:text-purple-500 active:scale-90 mr-4">
+      <i class="fa-solid fa-bars text-xl"></i>
+    </button>
+
+    <!-- Title -->
+    <div class="cursor-pointer" onclick="window.location.href='/admin'">
+      <h1 class="text-lg font-bold tracking-tight">
+        <span class="text-white">SN</span><span class="text-purple-500">II</span><span class="text-white">PE</span>
+        <span class="text-gray-400 font-medium ml-2">Admin Panel</span>
+      </h1>
+    </div>
+  </header>
+
+  <!-- SIDEBAR (DRAWER) -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-black/70 backdrop-blur-xl border-r border-white/10 p-6 z-40
+           transform -translate-x-full transition-transform duration-300">
+
+    <div class="mt-10 mb-6">
+      <hr class="border-white/10">
+    </div>
+
+    <nav class="space-y-2">
       <a href="/admin"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition group">
-        <span class="text-lg"><i class="fa-solid fa-table-columns"></i></span>
-        <span class="font-medium">Dashboard</span>
+        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition">
+        <i class="fa-solid fa-table-columns"></i>
+        <span>Dashboard</span>
       </a>
+
       <a href="/admin/products"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition group">
-        <span class="text-lg"><i class="fa-solid fa-cart-shopping"></i></span>
-        <span class="font-medium">Products</span>
+        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span>Products</span>
       </a>
+
       <a href="/admin/orders"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition group">
-        <span class="text-lg"><i class="fa-solid fa-box"></i></span>
-        <span class="font-medium">Orders</span>
+        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition">
+        <i class="fa-solid fa-box"></i>
+        <span>Orders</span>
       </a>
+
       <a href="/admin/users"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition group">
-        <span class="text-lg"><i class="fa-solid fa-users"></i></span>
-        <span class="font-medium">Users</span>
+        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition">
+        <i class="fa-solid fa-users"></i>
+        <span>Users</span>
       </a>
+
       <a href="/admin/db"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition group">
-        <span class="text-lg"><i class="fa-solid fa-database"></i></span>
-        <span class="font-medium">DB Schema</span>
+        class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 hover:text-purple-400 transition">
+        <i class="fa-solid fa-database"></i>
+        <span>DB Schema</span>
       </a>
     </nav>
 
-    <div class="pt-4 border-t border-white/10">
-      <button onclick="window.location.href = '/'"
-        class="w-full flex items-center justify-center gap-2 my-4 px-4 py-3 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded-xl font-semibold transition">
-        <span><i class="fa-solid fa-door-open"></i></span>
-        <span>Back to Shop</span>
+    <!-- Bottom Buttons -->
+    <div class="absolute bottom-6 left-6 right-6 space-y-3">
+      <button onclick="window.location.href='/'"
+        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded-xl font-semibold transition">
+        <i class="fa-solid fa-door-open"></i>
+        Back to Shop
       </button>
 
       <button onclick="logoutAdmin()"
-        class="w-full flex items-center justify-center gap-2 my-4 px-4 py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 rounded-xl font-semibold transition">
-        <span><i class="fa-solid fa-right-from-bracket"></i></span>
-        <span>Logout</span>
+        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 rounded-xl font-semibold transition">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Logout
       </button>
     </div>
   </aside>
 
+  <!-- OVERLAY -->
+  <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-30"></div>
+
   <!-- MAIN CONTENT -->
-  <main class="ml-64 min-h-screen p-8">
+  <main class="mt-16 md:mt-12 min-h-screen p-4 sm:p-6 md:p-8">
     {% block content %}{% endblock %}
   </main>
+  
 
+  <!-- SCRIPT -->
   <script>
-    function logoutAdmin() {
-      if (confirm("Are you sure you want to logout?")) {
-        localStorage.removeItem("admin_token");
-        localStorage.removeItem("admin_email");
-        window.location.href = "/admin/login";
-      }
-    }
+    // Sidebar Animation
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("overlay");
 
-    // Check authentication on page load
-    document.addEventListener("DOMContentLoaded", () => {
-      const token = localStorage.getItem("admin_token");
-      if (!token && !window.location.pathname.includes("/login")) {
-        window.location.href = "/admin/login";
-      }
-    });
+      sidebar.classList.toggle("-translate-x-full");
+      overlay.classList.toggle("hidden");
+    }
 
     // Highlight active nav item
     document.addEventListener("DOMContentLoaded", () => {
@@ -126,7 +149,25 @@
       });
     });
 
+    // Auth check
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = localStorage.getItem("admin_token");
+      if (!token && !window.location.pathname.includes("/login")) {
+        window.location.href = "/admin/login";
+      }
+    });
+
+    // Logout
+    function logoutAdmin() {
+      if (confirm("Are you sure you want to logout?")) {
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_email");
+        window.location.href = "/admin/login";
+      }
+    }
   </script>
+
 </body>
+
 
 </html>
