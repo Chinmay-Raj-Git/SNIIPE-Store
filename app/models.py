@@ -129,10 +129,10 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
     
-    razorpay_order_id = db.Column(db.String(100), nullable=True, unique=True)
+    razorpay_order_id = db.Column(db.String(100), nullable=True, unique=True)  # payment
     razorpay_payment_id = db.Column(db.String(100), nullable=True)
     
-    shipping_name = db.Column(db.String(120), nullable=False)
+    shipping_name = db.Column(db.String(120), nullable=False)  # shipping details
     shipping_phone = db.Column(db.String(20), nullable=False)
     shipping_address_line_1 = db.Column(db.String(255), nullable=False)
     shipping_address_line_2 = db.Column(db.String(255), nullable=True)
@@ -140,11 +140,16 @@ class Order(db.Model):
     shipping_state = db.Column(db.String(100), nullable=False)
     shipping_pincode = db.Column(db.String(20), nullable=False)
     
-    shipping_provider = db.Column(db.String(50), nullable=True)  # shiprocket
+    shipping_provider = db.Column(db.String(50), nullable=True)  # shiprocket part
     shipping_order_id = db.Column(db.String(100), nullable=True)
     shipment_status = db.Column(db.String(50), nullable=True)
     awb_code = db.Column(db.String(100), nullable=True)
     courier_name = db.Column(db.String(100), nullable=True)
+    
+    coupon_code = db.Column(db.String(50), nullable=True)  # coupon part
+    discount_amount = db.Column(db.Numeric(10, 2), default=0)
+    final_amount = db.Column(db.Numeric(10, 2), nullable=True)
+
 
 
     user = db.relationship('Users', backref='orders')
@@ -164,3 +169,42 @@ class OrderItem(db.Model):
     order = db.relationship('Order', backref=db.backref('items', cascade='all, delete-orphan'))
     product = db.relationship('Product', backref='order_items')
     variant = db.relationship('Product_Variants', backref='order_items')
+    
+# -----------------------------
+# COUPONS SYSTEM
+# -----------------------------
+class Coupons(db.Model):
+    __tablename__ = "coupons"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    type = db.Column(db.String(20), nullable=False)     # 'percentage' or 'flat'
+    value = db.Column(db.Numeric(10, 2), nullable=False)
+    min_order_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    max_discount = db.Column(db.Numeric(10, 2), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+
+    def __repr__(self):
+        return f"<Coupon {self.code} ({self.type}:{self.value})>"
+
+
+class CouponUsage(db.Model):
+    __tablename__ = "coupon_usages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    coupon_id = db.Column(db.Integer, db.ForeignKey("coupons.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    used_at = db.Column(db.DateTime, default=db.func.now())
+
+    # One-time usage enforcement
+    __table_args__ = (
+        db.UniqueConstraint("coupon_id", "user_id", name="uq_coupon_user"),
+    )
+
+    coupon = db.relationship("Coupon", backref="usages")
+    user = db.relationship("Users", backref="coupon_usages")
+
+    def __repr__(self):
+        return f"<CouponUsage coupon={self.coupon_id} user={self.user_id}>"

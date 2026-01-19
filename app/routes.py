@@ -61,6 +61,34 @@ def get_user_friendly_status(status):
     }
     return mapping.get(status, "Processing")
 
+def calculate_cart_subtotal(user_id):
+    cart = Cart.query.filter_by(user_id=user_id).first()
+    if not cart or not cart.items:
+        return Decimal("0.00")
+
+    subtotal = Decimal("0.00")
+    for item in cart.items:
+        subtotal += Decimal(item.price_at_time) * item.quantity
+
+    return subtotal
+
+
+def calculate_buy_now_subtotal(product_id, variant_id, quantity):
+    product = Product.query.get(product_id)
+    if not product:
+        return None, "Product not found"
+
+    price = Decimal(product.price)
+
+    if variant_id:
+        variant = Product_Variants.query.get(variant_id)
+        if not variant:
+            return None, "Variant not found"
+        if variant.price_override is not None:
+            price = Decimal(variant.price_override)
+
+    subtotal = price * quantity
+    return subtotal, None
 
 
 # ----------------------------------------------------------
@@ -1406,6 +1434,101 @@ def create_shiprocket_shipment(order):
 # --END OF RAZORPAY PAYMENT
 # ----------------------------------------------------------
 
+
+# ----------------------------------------------------------
+# COUPONS SECTION
+# ----------------------------------------------------------
+
+# -----------------------------
+# ----POST: Applying Coupon
+# -----------------------------
+@bp.route("/coupons/apply", methods=["POST"])
+@require_auth
+def apply_coupon():
+    data = request.get_json() or {}
+
+    code = (data.get("code") or "").strip().upper()
+    context = data.get("context")  # "cart" or "buy_now"
+    if not code:
+        return jsonify({"error": "Coupon code required"}), 400
+
+    coupon = Coupons.query.filter_by(code=code, is_active=True).first()
+    if not coupon:
+        return jsonify({"error": "Invalid or inactive coupon"}), 400
+
+    # Expiry check
+    if coupon.expires_at and coupon.expires_at < datetime.utcnow():
+        return jsonify({"error": "Coupon has expired"}), 400
+
+    # One-time usage check
+    already_used = CouponUsage.query.filter_by(
+        coupon_id=coupon.id,
+        user_id=g.user.id
+    ).first()
+
+    if already_used:
+        return jsonify({"error": "You have already used this coupon"}), 400
+
+    # Calculate subtotal
+    if context == "cart":
+        subtotal = calculate_cart_subtotal(g.user.id)
+
+    elif context == "buy_now":
+        product_id = data.get("product_id")
+        variant_id = data.get("variant_id")
+        quantity = int(data.get("quantity", 1))
+
+        if not product_id or quantity < 1:
+            return jsonify({"error": "Invalid buy now request"}), 400
+
+        subtotal, err = calculate_buy_now_subtotal(
+            product_id, variant_id, quantity
+        )
+        if err:
+            return jsonify({"error": err}), 400
+    else:
+        return jsonify({"error": "Invalid context"}), 400
+
+    if subtotal <= 0:
+        return jsonify({"error": "Nothing to apply coupon on"}), 400
+
+    # Min order check
+    if coupon.min_order_amount and subtotal < coupon.min_order_amount:
+        return jsonify({
+            "error": f"Minimum order amount is ₹{coupon.min_order_amount}"
+        }), 400
+
+    # Calculate discount
+    discount_amount = Decimal("0.00")
+
+    if coupon.type == "percentage":
+        discount_amount = (subtotal * Decimal(coupon.value) / Decimal("100")).quantize(Decimal("0.01"))
+    elif coupon.type == "flat":
+        discount_amount = Decimal(coupon.value)
+    else:
+        return jsonify({"error": "Invalid coupon type"}), 400
+
+    # Max discount cap
+    if coupon.max_discount:
+        discount_amount = min(discount_amount, Decimal(coupon.max_discount))
+
+    # Never exceed subtotal
+    discount_amount = min(discount_amount, subtotal)
+
+    final_total = subtotal - discount_amount
+
+    return jsonify({
+        "coupon_code": coupon.code,
+        "discount_type": coupon.type,
+        "discount_value": str(coupon.value),
+        "original_total": str(subtotal),
+        "discount_amount": str(discount_amount),
+        "final_total": str(final_total)
+    })
+
+# ----------------------------------------------------------
+# --END OF COUPONS SECTION
+# ----------------------------------------------------------
 
 # Admin routes have been moved to app/admin/admin_routes.py
 
