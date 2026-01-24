@@ -202,8 +202,6 @@
 
             document.getElementById("name").value = data.name || "";
             document.getElementById("phoneWp").value = data.phone || "";
-            console.log("Phone:", data);
-            // console.log("WhatsApp Opt-In:", data.whatsapp_opt_in);
             document.getElementById("whatsapp_opt_in").checked = data.whatsapp_opt_in || false;
         } catch (error) {
             console.error("Failed to load profile:", error);
