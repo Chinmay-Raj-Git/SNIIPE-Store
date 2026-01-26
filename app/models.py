@@ -13,6 +13,7 @@ class Product(db.Model):
     description = db.Column(db.Text, nullable=True)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     category = db.Column(db.String(50), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=True)
 
 class Product_Variants(db.Model):
     __tablename__ = 'product_variants'
@@ -203,8 +204,8 @@ class CouponUsage(db.Model):
         db.UniqueConstraint("coupon_id", "user_id", name="uq_coupon_user"),
     )
 
-    coupon = db.relationship("Coupon", backref="usages")
+    coupons = db.relationship("Coupons", backref="usages")
     user = db.relationship("Users", backref="coupon_usages")
 
     def __repr__(self):
-        return f"<CouponUsage coupon={self.coupon_id} user={self.user_id}>"
+        return f"<CouponUsage coupons={self.coupon_id} user={self.user_id}>"

@@ -175,6 +175,7 @@ def admin_get_products():
                 "name": p.name,
                 "description": p.description,
                 "price": float(p.price),
+                "is_active": p.is_active,
                 "category": p.category,
                 "thumbnail": thumbnail.image_url if thumbnail else None
             })
@@ -202,6 +203,7 @@ def admin_get_product(id):
             "name": product.name,
             "description": product.description,
             "price": float(product.price),
+            "is_active": product.is_active,
             "category": product.category,
             "variants": [{
                 "id": v.id,
@@ -326,6 +328,8 @@ def admin_update_product(id):
             product.description = data.get("description")
         if data.get("price") is not None:
             product.price = data.get("price")
+        if data.get("is_active") is not None:
+            product.is_active = data.get("is_active", product.is_active)
         if data.get("category") is not None:
             product.category = data.get("category")
 

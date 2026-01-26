@@ -42,6 +42,28 @@
         .active-nav {
             color: #a855f7 !important;
         }
+
+        @keyframes cartPulse {
+            0% {
+                transform: scale(1);
+            }
+
+            30% {
+                transform: scale(1.25);
+            }
+
+            60% {
+                transform: scale(0.95);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .cart-animate {
+            animation: cartPulse 0.4s ease-in-out;
+        }
     </style>
 </head>
 
@@ -49,11 +71,12 @@
 
     <!-- HEADER / NAVBAR -->
     <header class="flex justify-center w-full border-b border-gray-800 bg-black sticky top-0 z-30">
-        <nav class="relative w-full max-w-7xl px-6 py-4 grid grid-cols-3 items-center">
+        <nav class="relative w-full max-w-[90rem] px-6 py-4 grid grid-cols-3 items-center">
 
             <!-- LEFT → SNIIPE Logo -->
             <a class="flex justify-center" href="/">
-                <img src="{{ url_for('static', filename='images/sniipe.png') }}" alt="SNIIPE" class="h-8 w-auto min-w-28">
+                <img src="{{ url_for('static', filename='images/sniipe.png') }}" alt="SNIIPE"
+                    class="h-8 w-auto min-w-28">
             </a>
 
             <!-- CENTER → Bird Icon -->
@@ -65,15 +88,24 @@
             <!-- RIGHT → Navigation -->
             <div class="flex justify-center">
 
-                <div class="hidden lg:flex justify-end items-center gap-8 text-sm uppercase tracking-wide">
-                    <a href="/home" class="nav-link hover:text-purple-400"></a>
-                    <a href="/profile" id="nav-profile" class="nav-link hover:text-purple-400">Profile</a>
-                    <a href="/cart" id="nav-cart" class="nav-link hover:text-purple-400">Cart</a>
+                <div class="hidden lg:flex justify-end items-center gap-6 text-md uppercase tracking-wide">
+                    <a href="/home" class="nav-link hover:text-purple-400">
+                        <i class="fa-solid fa-bag-shopping text-xl px-1.5"></i> SHOP
+                    </a>
+                    <a href="/profile" id="nav-profile" class="nav-link hover:text-purple-400">
+                        <i class="fa-solid fa-user text-xl px-1"></i> Profile
+                    </a>
+                    <a href="/cart" id="nav-cart" class="group relative nav-link hover:text-purple-400 ">
+                        <i class="absolute fa-solid fa-circle text-purple-600 group-hover:text-lg group-hover:bottom-3.5 
+                        transition-all duration-150 text-md left-2.5 px-1"><span id="cart-items-num" class="absolute group-hover:top-[0.025rem] group-hover:right-[0.55rem] 
+                        right-[0.45rem] top-[0.1rem] text-[0.75rem] text-white hidden">5</span></i>
+                        <i class="fa-solid fa-shopping-cart text-xl px-1"></i> Cart
+                    </a>
                     <button id="logoutBtn" class="text-red-400 hover:text-purple-500 hidden">
-                        LOGOUT
+                        <i class="fa-solid fa-right-from-bracket text-xl px-1"></i> LOGOUT
                     </button>
                     <a href="/login-page" id="loginBtn" class="text-emerald-400 hover:text-purple-500">
-                        LOGIN
+                        <i class="fa-solid fa-right-to-bracket text-xl px-1"></i> LOGIN
                     </a>
 
                 </div>
@@ -89,16 +121,26 @@
         <!-- MOBILE MENU -->
         <div id="mobileMenu"
             class="absolute left-0 right-0 top-full hidden bg-black border-t border-gray-900 px-6 py-4 lg:hidden shadow-2xl">
-            <a href="/home" class="block py-2 nav-link">Shop</a>
-            <a href="/profile" id="nav-profile-mobile" class="block py-2 nav-link">Profile</a>
-            <a href="/cart" id="nav-cart-mobile" class="block py-2 nav-link">Cart</a>
-
-            <a href="/login-page" id="loginBtnMobile" class="block py-2 text-emerald-400 hover:text-purple-500">
-                LOGIN
+            <a href="/home" class="block py-2 nav-link">
+                <i class="fa-solid fa-bag-shopping text-md px-1.5"></i> Shop
+            </a>
+            <a href="/profile" id="nav-profile-mobile" class="block py-2 nav-link">
+                <i class="fa-solid fa-user text-md px-1"></i> Profile
+            </a>
+            <a href="/cart-page" id="nav-cart-mobile" class="relative block py-2 nav-link">
+                <i class="fa-solid fa-shopping-cart text-md px-1"></i>Cart
+                <span id="cart-items-num-mobile" class="hidden absolute top-2 right-4 bg-purple-600 text-white
+               text-xs font-bold px-1.5 py-0.5 rounded-full">
+                    0
+                </span>
             </a>
 
-            <button id="logoutBtnMobile" class="mt-4 text-red-400 hover:text-purple-500">
-                LOGOUT
+            <a href="/login-page" id="loginBtnMobile" class="block py-2 text-emerald-400 hover:text-purple-500">
+                <i class="fa-solid fa-right-to-bracket text-md px-1"></i> LOGIN
+            </a>
+
+            <button id="logoutBtnMobile" class="mt-4 ml-2 block py-2 text-red-400 hover:text-purple-500">
+                <i class="fa-solid fa-right-from-bracket text-md px-1"></i> LOGOUT
             </button>
         </div>
     </header>
@@ -120,9 +162,6 @@
         </div>
     </div>
 
-
-
-
     <!-- MAIN CONTENT BLOCK -->
     <main class="min-h-screen">
         {% block content %}
@@ -133,7 +172,9 @@
         {% endblock %}
     </main>
 
-    <!-- ADDRESS SELECTION MODAL (initially hidden) -->
+    <!-- ALL POPUP MODALS -->
+
+    <!-- i) ADDRESS SELECTION MODAL (initially hidden) -->
     <div id="addressModal" class="fixed inset-0 z-50 px-4 hidden flex items-center justify-center bg-black/60">
 
 
@@ -170,9 +211,85 @@
         </div>
     </div>
 
+    <!-- ii) ORDER SUCCESS MODAL -->
+    <div id="orderSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70">
+
+        <div class="bg-black/80 border border-white/10 rounded-3xl p-8 max-w-lg w-full text-center">
+            <div class="flex justify-center mb-4">
+                <div class="h-16 w-16 rounded-full bg-green-500/20 border border-green-500/30
+                  flex items-center justify-center">
+                    <i class="fa-regular fa-circle-check text-2xl text-green-500"></i>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-2">Order Placed Successfully 🎉</h2>
+            <p class="text-gray-400 mb-6">Thank you for shopping with SNIIPE</p>
+
+            <p class="text-sm text-gray-400">Order ID</p>
+            <p id="successOrderId" class="font-semibold mb-4">#SN-</p>
+
+            <div class="flex gap-4 justify-center">
+                <a href="/profile" class="px-6 py-3 bg-purple-600 rounded-xl font-semibold">
+                    View Orders
+                </a>
+                <button onclick="closeOrderSuccessPopup()" class="px-6 py-3 border border-white/10 rounded-xl">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iii) COUPON PREVIEW MODAL -->
+    <div id="couponModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+
+        <div class="bg-black/90 border border-white/10 rounded-3xl
+                w-full max-w-md p-6 shadow-2xl">
+
+            <h2 class="text-xl font-semibold mb-4">Coupon Applied 🎉</h2>
+
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Coupon</span>
+                    <span id="cm-code" class="font-semibold text-purple-400"></span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Subtotal</span>
+                    <span id="cm-subtotal"></span>
+                </div>
+
+                <div class="flex justify-between text-green-400">
+                    <span>Discount</span>
+                    <span>-₹<span id="cm-discount"></span></span>
+                </div>
+
+                <div class="border-t border-white/10 pt-3 flex justify-between text-lg font-semibold">
+                    <span>Total</span>
+                    <span class="text-purple-400">₹<span id="cm-final"></span></span>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="confirmCoupon()" class="flex-1 bg-purple-600 hover:bg-purple-700
+                           py-3 rounded-xl font-semibold">
+                    Proceed
+                </button>
+
+                <button onclick="closeCouponModal()" class="flex-1 border border-white/10 rounded-xl py-3">
+                    Remove
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iv) LOADING ANIMATION FOR REUSING -->
+    <div id="loader" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+        <div class="animate-spin h-12 w-12 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+    </div>
+
     <!-- FOOTER -->
     <footer class="mt-24 border-t border-gray-800 bg-black/60">
-        <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
+        <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-5 gap-8 text-sm">
 
             <!-- BRAND -->
             <div>
@@ -188,6 +305,17 @@
                 <ul class="space-y-2 text-gray-400">
                     <li><a href="/contact" class="hover:text-purple-400">Contact</a></li>
                     <li><a href="/support" class="hover:text-purple-400">Support</a></li>
+                </ul>
+            </div>
+
+            <!-- QUICK NAV LINKS -->
+            <div>
+                <h4 class="text-white font-semibold mb-3">Store</h4>
+                <ul class="space-y-2 text-gray-400">
+                    <li><a href="/home" class="hover:text-purple-400">Shop</a></li>
+                    <li><a href="/profile" class="hover:text-purple-400">Profile</a></li>
+                    <li><a href="/cart" class="hover:text-purple-400">Cart</a></li>
+
                 </ul>
             </div>
 
@@ -221,18 +349,51 @@
         </div>
     </footer>
 
+    <!-- GLOBAL JS -->
 
-    <div id="loader" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-        <div class="animate-spin h-12 w-12 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-    </div>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        window.supabaseClient = window.supabase.createClient(
+            "{{ config['SUPABASE_URL'] }}",
+            "{{ config['SUPABASE_KEY'] }}",
+            {
+                auth: {
+                    flowType: 'pkce',
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true
+                }
+            }
+        );
+    </script>
 
     <script>
-        function showLoader() {
-            document.getElementById("loader").classList.remove("hidden");
-        }
-        function hideLoader() {
-            document.getElementById("loader").classList.add("hidden");
-        }
+        // NEWS SLIDER
+        (function () {
+            const items = document.querySelectorAll("#global-news-slider .global-news-item");
+            if (!items.length) return;
+
+            let index = 0;
+
+            setInterval(() => {
+                const current = items[index];
+                const next = items[(index + 1) % items.length];
+
+                current.classList.remove("translate-x-0", "opacity-100");
+                current.classList.add("-translate-x-full", "opacity-0");
+
+                next.classList.remove("translate-x-full", "opacity-0");
+                next.classList.add("translate-x-0", "opacity-100");
+
+                setTimeout(() => {
+                    current.classList.remove("-translate-x-full");
+                    current.classList.add("translate-x-full");
+                }, 700);
+
+                index = (index + 1) % items.length;
+            }, 3000);
+        })();
 
         function updateAuthUI() {
             const token = localStorage.getItem("access_token");
@@ -269,86 +430,184 @@
             }
         }
 
-    </script>
+        function updateCartCount() {
+            const desktop = document.getElementById("cart-items-num");
+            const mobile = document.getElementById("cart-items-num-mobile");
 
-    <div id="orderSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70">
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                desktop?.classList.add("hidden");
+                mobile?.classList.add("hidden");
+                return;
+            }
 
-        <div class="bg-black/80 border border-white/10 rounded-3xl p-8 max-w-lg w-full text-center">
-            <div class="flex justify-center mb-4">
-                <div class="h-16 w-16 rounded-full bg-green-500/20 border border-green-500/30
-                  flex items-center justify-center">
-                    <i class="fa-regular fa-circle-check text-2xl text-green-500"></i>
-                </div>
-            </div>
+            fetch("/cart/count", {
+                headers: { "Authorization": "Bearer " + token }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const count = data.count || 0;
+                    [desktop, mobile].forEach(el => {
+                        if (!el) return;
+                        if (count > 0) {
+                            el.innerText = count;
+                            el.classList.remove("hidden");
 
-            <h2 class="text-2xl font-bold mb-2">Order Placed Successfully 🎉</h2>
-            <p class="text-gray-400 mb-6">Thank you for shopping with SNIIPE</p>
-
-            <p class="text-sm text-gray-400">Order ID</p>
-            <p id="successOrderId" class="font-semibold mb-4">#SN-</p>
-
-            <div class="flex gap-4 justify-center">
-                <a href="/profile" class="px-6 py-3 bg-purple-600 rounded-xl font-semibold">
-                    View Orders
-                </a>
-                <button onclick="closeOrderSuccessPopup()" class="px-6 py-3 border border-white/10 rounded-xl">
-                    Continue Shopping
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function showOrderSuccessPopup(orderId) {
-            hideLoader();
-            document.getElementById("successOrderId").innerText += orderId;
-            document.getElementById("orderSuccessModal").classList.remove("hidden");
+                            el.classList.remove("cart-animate");
+                            void el.offsetWidth;
+                            el.classList.add("cart-animate");
+                        } else {
+                            el.classList.add("hidden");
+                        }
+                    });
+                })
+                .catch(() => {
+                    desktop?.classList.add("hidden");
+                    mobile?.classList.add("hidden");
+                });
         }
 
-        function closeOrderSuccessPopup() {
-            document.getElementById("orderSuccessModal").classList.add("hidden");
+
+        // UTILITY FUNCTIONS
+        function showLoader() {
+            document.getElementById("loader").classList.remove("hidden");
         }
-    </script>
+        function hideLoader() {
+            document.getElementById("loader").classList.add("hidden");
+        }
+        window.SNIIPE = {
+            // Protected page navigation
+            goProtected: async function (path) {
+                const token = localStorage.getItem("access_token");
+                if (!token) {
+                    window.location.href = `/login-page/${path}`;
+                    return;
+                }
+
+                try {
+                    const res = await fetch("/profile/me", {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    });
+
+                    if (!res.ok) {
+                        if (res.status === 401) {
+                            localStorage.removeItem("access_token");
+                            window.location.href = `/login-page/${path}`;
+                            return;
+                        }
+                    }
+
+                    window.location.href = path;
+                } catch (error) {
+                    // Network error or other issues
+                    console.error("Token validation failed:", error);
+                    localStorage.removeItem("access_token");
+                    window.location.href = `/login-page/${path}`;
+                }
+            },
+
+            // Logout logic
+            logout: function () {
+                localStorage.removeItem("access_token");
+                window.location.href = "/login-page";
+            },
+
+            confirmPhone: async function () {
+                const token = localStorage.getItem("access_token");
+                if (!token) return null;
+
+                try {
+                    const res = await fetch("/profile/me", {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    });
+
+                    if (!res.ok) {
+                        // Token is invalid or expired
+                        if (res.status === 401) {
+                            localStorage.removeItem("access_token");
+                        }
+                        return null;
+                    }
+
+                    const data = await res.json();
+                    return data.phone ? data.phone : null;
+                } catch (error) {
+                    console.error("Failed to fetch user data:", error);
+                    return null;
+                }
+            },
+
+            // Password visibility toggle
+            togglePasswordVisibility: function (button) {
+                const targetId = button.dataset.target;
+                const input = document.getElementById(targetId);
+                if (!input) return;
+
+                const isHidden = input.type === "password";
+                input.type = isHidden ? "text" : "password";
+
+                // Update button icon
+                button.innerHTML = isHidden ?
+                    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>` :
+                    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>`;
+            },
+
+            // Show loading state TEXT VERSION
+            showLoading: function (element, text = "Loading...") {
+                if (element) {
+                    element.disabled = true;
+                    element.dataset.originalText = element.textContent;
+                    element.textContent = text;
+                }
+            },
+
+            // Hide loading state TEXT VERSION
+            hideLoading: function (element) {
+                if (element && element.dataset.originalText) {
+                    element.disabled = false;
+                    element.textContent = element.dataset.originalText;
+                }
+            },
+
+            // Show error message
+            showError: function (message, elementId = "msg") {
+                const msgEl = document.getElementById(elementId);
+                if (msgEl) {
+                    msgEl.textContent = message;
+                    msgEl.className = "text-center text-red-400 mt-4 text-sm";
+                    setTimeout(() => {
+                        msgEl.textContent = "";
+                    }, 5000);
+                }
+            },
+
+            // Show success message
+            showSuccess: function (message, elementId = "msg") {
+                const msgEl = document.getElementById(elementId);
+                if (msgEl) {
+                    msgEl.textContent = message;
+                    msgEl.className = "text-center text-green-400 mt-4 text-sm";
+                    setTimeout(() => {
+                        msgEl.textContent = "";
+                    }, 3000);
+                }
+            }
+        };
 
 
-
-
-
-    <!-- GLOBAL JS -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-    <script>
-        (function () {
-            const items = document.querySelectorAll("#global-news-slider .global-news-item");
-            if (!items.length) return;
-
-            let index = 0;
-
-            setInterval(() => {
-                const current = items[index];
-                const next = items[(index + 1) % items.length];
-
-                current.classList.remove("translate-x-0", "opacity-100");
-                current.classList.add("-translate-x-full", "opacity-0");
-
-                next.classList.remove("translate-x-full", "opacity-0");
-                next.classList.add("translate-x-0", "opacity-100");
-
-                setTimeout(() => {
-                    current.classList.remove("-translate-x-full");
-                    current.classList.add("translate-x-full");
-                }, 700);
-
-                index = (index + 1) % items.length;
-            }, 3000);
-        })();
-    </script>
-
-
-    <script>
+        // HANDLERS
         async function oauthLogin(provider, intent = "login") {
-            // store intent so callback knows what to do
             localStorage.setItem("oauth_intent", intent);
 
             const { error } = await window.supabaseClient.auth.signInWithOAuth({
@@ -363,11 +622,6 @@
                 alert("Google login failed. Please try again.");
             }
         }
-    </script>
-
-
-
-    <script>
 
         function startRazorpay(orderId) {
             showLoader(); // 👈 ADD
@@ -385,6 +639,12 @@
                 .then(res => res.json())
                 .then(data => {
                     hideLoader(); // 👈 Razorpay popup is ready
+
+                    // 🟢 CASE 1: NO PAYMENT REQUIRED (₹0 ORDER)
+                    if (data.payment_required === false) {
+                        showOrderSuccessPopup(data.order_id);
+                        return;
+                    }
 
                     const rzp = new Razorpay({
                         key: data.key,
@@ -423,23 +683,15 @@
                     alert("Payment failed to start.");
                 });
         }
+    </script>
 
 
-        window.supabaseClient = window.supabase.createClient(
-            "{{ config['SUPABASE_URL'] }}",
-            "{{ config['SUPABASE_KEY'] }}",
-            {
-                auth: {
-                    flowType: 'pkce',
-                    persistSession: true,
-                    autoRefreshToken: true,
-                    detectSessionInUrl: true
-                }
-            }
-        );
 
+    <!-- POP UPS -->
+    <!-- Address Modal Pop Up -->
+    <script>
         let selectedAddressId = null;
-        let checkoutContext = null; // { type: "buy_now" | "cart", payload: {...} }
+        let checkoutContext = null;
 
         function openAddressModal(context) {
             checkoutContext = context;
@@ -520,145 +772,96 @@
                 startCartCheckoutWithAddress(selectedAddressId);
             }
         }
+    </script>
 
+    <!-- Order Success Modal Pop Up -->
+    <script>
+        function showOrderSuccessPopup(orderId) {
+            hideLoader();
+            document.getElementById("successOrderId").innerText += orderId;
+            document.getElementById("orderSuccessModal").classList.remove("hidden");
+        }
 
+        function closeOrderSuccessPopup() {
+            document.getElementById("orderSuccessModal").classList.add("hidden");
+        }
+    </script>
 
+    <!-- Coupons Modal Pop Up -->
+    <script>
+        window.appliedCoupon = null;
 
-        // Common utility functions
-        window.SNIIPE = {
-            // Logout logic
-            logout: function () {
-                localStorage.removeItem("access_token");
-                window.location.href = "/login-page";
-            },
+        async function applyCoupon(context, payload = {}) {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                alert("Please login to apply coupon");
+                return;
+            }
 
-            confirmPhone: async function () {
-                const token = localStorage.getItem("access_token");
-                if (!token) return null;
+            const code = document.getElementById("couponInput")?.value?.trim();
+            if (!code) {
+                alert("Enter a coupon code");
+                return;
+            }
 
-                try {
-                    const res = await fetch("/profile/me", {
-                        method: "GET",
-                        headers: {
-                            "Authorization": "Bearer " + token
-                        }
-                    });
+            const body = {
+                code,
+                context,
+                ...payload
+            };
 
-                    if (!res.ok) {
-                        // Token is invalid or expired
-                        if (res.status === 401) {
-                            localStorage.removeItem("access_token");
-                        }
-                        return null;
-                    }
+            try {
+                const res = await fetch("/coupons/apply", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify(body)
+                });
 
-                    const data = await res.json();
-                    return data.phone ? data.phone : null;
-                } catch (error) {
-                    console.error("Failed to fetch user data:", error);
-                    return null;
-                }
-            },
-
-            // Helper: validate token and then navigate to protected route
-            goProtected: async function (path) {
-                const token = localStorage.getItem("access_token");
-                if (!token) {
-                    window.location.href = `/login-page/${path}`;
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || "Invalid coupon");
                     return;
                 }
 
-                // Validate token by making a lightweight authenticated request
-                try {
-                    const res = await fetch("/profile/me", {
-                        method: "GET",
-                        headers: {
-                            "Authorization": "Bearer " + token
-                        }
-                    });
+                // Save coupon temporarily
+                window.appliedCoupon = data;
 
-                    if (!res.ok) {
-                        // Token is invalid or expired
-                        if (res.status === 401) {
-                            localStorage.removeItem("access_token");
-                            window.location.href = `/login-page/${path}`;
-                            return;
-                        }
-                    }
+                // Fill modal
+                document.getElementById("cm-code").innerText = data.coupon_code;
+                document.getElementById("cm-subtotal").innerText = "₹" + data.original_total;
+                document.getElementById("cm-discount").innerText = data.discount_amount;
+                document.getElementById("cm-final").innerText = data.final_total;
 
-                    // Token is valid, proceed to protected page
-                    window.location.href = path;
-                } catch (error) {
-                    // Network error or other issue
-                    console.error("Token validation failed:", error);
-                    localStorage.removeItem("access_token");
-                    window.location.href = `/login-page/${path}`;
-                }
-            },
+                document.getElementById("couponModal").classList.remove("hidden");
 
-            // Password visibility toggle utility
-            togglePasswordVisibility: function (button) {
-                const targetId = button.dataset.target;
-                const input = document.getElementById(targetId);
-                if (!input) return;
-
-                const isHidden = input.type === "password";
-                input.type = isHidden ? "text" : "password";
-
-                // Update button icon
-                button.innerHTML = isHidden ?
-                    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>` :
-                    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                    </svg>`;
-            },
-
-            // Show loading state
-            showLoading: function (element, text = "Loading...") {
-                if (element) {
-                    element.disabled = true;
-                    element.dataset.originalText = element.textContent;
-                    element.textContent = text;
-                }
-            },
-
-            // Hide loading state
-            hideLoading: function (element) {
-                if (element && element.dataset.originalText) {
-                    element.disabled = false;
-                    element.textContent = element.dataset.originalText;
-                }
-            },
-
-            // Show error message
-            showError: function (message, elementId = "msg") {
-                const msgEl = document.getElementById(elementId);
-                if (msgEl) {
-                    msgEl.textContent = message;
-                    msgEl.className = "text-center text-red-400 mt-4 text-sm";
-                    setTimeout(() => {
-                        msgEl.textContent = "";
-                    }, 5000);
-                }
-            },
-
-            // Show success message
-            showSuccess: function (message, elementId = "msg") {
-                const msgEl = document.getElementById(elementId);
-                if (msgEl) {
-                    msgEl.textContent = message;
-                    msgEl.className = "text-center text-green-400 mt-4 text-sm";
-                    setTimeout(() => {
-                        msgEl.textContent = "";
-                    }, 3000);
-                }
+            } catch (e) {
+                alert("Failed to apply coupon");
             }
-        };
+        }
 
-        // Initialize event listeners
+        function closeCouponModal() {
+            window.appliedCoupon = null;
+            document.getElementById("couponModal").classList.add("hidden");
+        }
+
+        function confirmCoupon() {
+            document.getElementById("couponModal").classList.add("hidden");
+
+            // Update totals UI (cart page)
+            if (window.appliedCoupon) {
+                document.getElementById("newPrice").innerText =
+                    window.appliedCoupon.final_total;
+            }
+        }
+    </script>
+
+
+
+    <!-- EVENT LISTENERS -->
+    <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Logout buttons
             document.getElementById("logoutBtn")?.addEventListener("click", SNIIPE.logout);
@@ -698,7 +901,9 @@
                 mobileMenu.classList.toggle("hidden");
             });
 
+
             updateAuthUI();
+            updateCartCount();
 
         });
     </script>

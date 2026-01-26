@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, abort, request, jsonify, render_template
 from .models import *
 from . import db
 from app import get_supabase
@@ -90,6 +90,53 @@ def calculate_buy_now_subtotal(product_id, variant_id, quantity):
     subtotal = price * quantity
     return subtotal, None
 
+def validate_and_apply_coupon(subtotal, coupon_code, user_id):
+    """
+    Returns: (discount_amount, final_amount, coupon_obj)
+    Raises: ValueError on invalid coupon
+    """
+
+    if not coupon_code:
+        return Decimal("0.00"), subtotal, None
+
+    coupon = Coupons.query.filter_by(code=coupon_code, is_active=True).first()
+    if not coupon:
+        raise ValueError("Invalid coupon")
+
+    if coupon.expires_at and coupon.expires_at < datetime.utcnow():
+        raise ValueError("Coupon expired")
+
+    already_used = CouponUsage.query.filter_by(
+        coupon_id=coupon.id,
+        user_id=user_id
+    ).first()
+
+    if already_used:
+        raise ValueError("Coupon already used")
+
+    if coupon.min_order_amount and subtotal < coupon.min_order_amount:
+        raise ValueError("Order amount too low for this coupon")
+
+    # Calculate discount
+    if coupon.type == "percentage":
+        discount = (subtotal * Decimal(coupon.value) / Decimal("100"))
+    elif coupon.type == "flat":
+        discount = Decimal(coupon.value)
+    else:
+        raise ValueError("Invalid coupon type")
+
+    if coupon.max_discount:
+        discount = min(discount, Decimal(coupon.max_discount))
+
+    discount = min(discount, subtotal)
+    final_total = subtotal - discount
+
+    return (
+        discount.quantize(Decimal("0.01")),
+        final_total.quantize(Decimal("0.01")),
+        coupon
+    )
+
 
 # ----------------------------------------------------------
 # --PRODUCTS
@@ -101,7 +148,7 @@ def calculate_buy_now_subtotal(product_id, variant_id, quantity):
 # -----------------------------
 @bp.route("/products", methods=["GET"])
 def get_products():
-    products = Product.query.all()
+    products = Product.query.filter_by(is_active=True).all()
 
     response = []
     for p in products:
@@ -128,6 +175,9 @@ def get_products():
 @bp.route("/product/<int:product_id>")
 def product_page(product_id):
     product = Product.query.get_or_404(product_id)
+    if not product.is_active:
+        return 404
+
 
     variants = Product_Variants.query.filter_by(product_id=product_id).all()
 
@@ -645,6 +695,23 @@ def get_cart():
 
     return jsonify({"cart": cart_items, "total": total})
 
+# -----------------------------
+# ----GET: Cart item count
+# -----------------------------
+@bp.route("/cart/count", methods=["GET"])
+@require_auth
+def cart_count():
+    cart = Cart.query.filter_by(user_id=g.user.id).first()
+
+    if not cart or not cart.items:
+        return jsonify({ "count": 0 })
+
+    total_qty = sum(item.quantity for item in cart.items)
+
+    return jsonify({
+        "count": total_qty
+    })
+
 
 # -----------------------------
 # ----POST: Add to Cart
@@ -673,6 +740,9 @@ def add_to_cart():
     product = Product.query.get(product_id)
     if not product:
         return jsonify({"error": "Product not found"}), 404
+    if not product.is_active:
+        return jsonify({"error": "Product is no longer available"}), 400
+
 
     # Validate variant if provided
     variant = None
@@ -910,6 +980,7 @@ def get_order_detail(order_id):
     return jsonify({
         "id": order.id,
         "created_at": order.created_at.isoformat(),
+        "payment_method": order.payment_method,
         "status": order.status,
         "status_label": get_user_friendly_status(order.status),
 
@@ -929,7 +1000,7 @@ def get_order_detail(order_id):
         },
 
         "items": items,
-        "total": float(order.total_amount)
+        "final_total": float(order.final_amount)
     })
 
 
@@ -950,6 +1021,9 @@ def whatsapp_buy_now():
         return jsonify({"error": "Invalid quantity"}), 400
 
     product = Product.query.get_or_404(product_id)
+    if not product.is_active:
+        return jsonify({"error": "Product is no longer available"}), 400
+
     variant = Product_Variants.query.get_or_404(variant_id)
 
     if variant.stock < quantity:
@@ -1129,24 +1203,45 @@ def create_razorpay_order():
         return jsonify({"error": "Invalid order state"}), 400
 
     client = get_razorpay_client()
+    
+    
+     # 🔹 Determine payable amount (single source of truth)
+    payable_amount = (
+        order.final_amount
+        if order.final_amount is not None
+        else order.total_amount
+    )
 
-    amount_paise = int(order.total_amount * 100)
+    # 🟢 CASE 1: ₹0 ORDER → NO RAZORPAY
+    if payable_amount == 0:
+        order.status = "paid"
+        order.payment_method = "coupon"
+        order.razorpay_order_id = None
+
+        db.session.commit()
+
+        return jsonify({
+            "payment_required": False,
+            "order_id": order.id
+        })
+        
+    amount_paise = int(payable_amount * 100)
 
     rzp_order = client.order.create({
-        "amount": amount_paise,
-        "currency": "INR",
-        "receipt": f"SN-{order.id}",
-        "payment_capture": 1
-    })
-
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": f"SN-{order.id}",
+            "payment_capture": 1
+        })
     order.razorpay_order_id = rzp_order["id"]
     db.session.commit()
 
     return jsonify({
+        "payment_required": True,
         "key": app.config["RAZORPAY_KEY_ID"],
         "amount": amount_paise,
         "currency": "INR",
-        "razorpay_order_id": rzp_order["id"],
+        "razorpay_order_id": rzp_order["id"] or 'coupon',
         "name": "SNIIPE",
         "description": f"Order SN-{order.id}"
     })
@@ -1217,6 +1312,7 @@ def verify_razorpay_payment():
 @require_auth
 def razorpay_buy_now():
     data = request.json
+    print(data)
     product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = int(data.get("quantity", 1))
@@ -1224,6 +1320,9 @@ def razorpay_buy_now():
     address_id = data.get("address_id")
     if not address_id:
         return jsonify({"error": "ADDRESS_REQUIRED"}), 400
+    
+    coupon_code = data.get("coupon_code")
+    print("got code:", coupon_code)
 
     # 1. Fetch product & variant
     product = Product.query.get_or_404(product_id)
@@ -1252,12 +1351,25 @@ def razorpay_buy_now():
     price = variant.price_override or product.price
     subtotal = price * quantity
     
+    # 🔒 APPLY COUPON (shared logic)
+    try:
+        discount, final_amount, coupon = validate_and_apply_coupon(
+            subtotal,
+            coupon_code,
+            g.user.id
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
     cleanup_stale_pending_orders(g.user.id)
 
     # 4. Create ORDER (NO stock reduction)
     order = Order(
         user_id=g.user.id,
         total_amount=subtotal,
+        discount_amount=discount,
+        final_amount=final_amount,
+        coupon_code=coupon.code if coupon else None,
         status="pending_payment",
         payment_method="RAZORPAY",
 
@@ -1284,11 +1396,15 @@ def razorpay_buy_now():
     )
 
     db.session.add(order_item)
+    if coupon:
+        db.session.add(CouponUsage(
+            coupon_id=coupon.id,
+            user_id=g.user.id
+        ))
     db.session.commit()
 
     return jsonify({
-        "order_id": order.id,
-        "amount": subtotal
+        "order_id": order.id
     })
     
     
@@ -1304,6 +1420,7 @@ def razorpay_cart_checkout():
     if not cart_items:
         return jsonify({"error": "Cart is empty"}), 400
     
+    coupon_code = data.get("coupon_code")
     address_id = data.get("address_id")
     if not address_id:
         return jsonify({"error": "ADDRESS_REQUIRED"}), 400
@@ -1316,7 +1433,7 @@ def razorpay_cart_checkout():
     if not address:
         return jsonify({"error": "INVALID_ADDRESS"}), 400
 
-    total = 0
+    subtotal = Decimal("0.00")
 
     # Validate stock
     for item in cart_items:
@@ -1325,14 +1442,27 @@ def razorpay_cart_checkout():
                 "error": f"Insufficient stock for {item.product.name}"
             }), 400
         price = item.variant.price_override or item.product.price
-        total += price * item.quantity
+        subtotal += price * item.quantity
 
     cleanup_stale_pending_orders(g.user.id)
+    
+    # Apply coupon safely
+    try:
+        discount, final_amount, coupon = validate_and_apply_coupon(
+            subtotal,
+            coupon_code,
+            g.user.id
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     # Create order
     order = Order(
         user_id=g.user.id,
-        total_amount=total,
+        total_amount=subtotal,
+        discount_amount=discount,
+        final_amount=final_amount,
+        coupon_code=coupon.code if coupon else None,
         status="pending_payment",
         payment_method="RAZORPAY",
 
@@ -1359,12 +1489,19 @@ def razorpay_cart_checkout():
             price_at_time=price,
             subtotal=price * item.quantity
         ))
-
+        
+    # Mark coupon as used (IMPORTANT)
+    if coupon:
+        db.session.add(CouponUsage(
+            coupon_id=coupon.id,
+            user_id=g.user.id
+        ))
+        
     db.session.commit()
 
     return jsonify({
         "order_id": order.id,
-        "amount": total
+        "amount": final_amount
     })
 
 

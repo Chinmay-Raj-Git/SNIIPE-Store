@@ -39,7 +39,7 @@ def get_shiprocket_token():
     }
 
     res = requests.post(url, json=payload)
-    print("Shiprocket auth response:", res.text)
+    # print("Shiprocket auth response:", res.text)
     res.raise_for_status()
 
     data = res.json()

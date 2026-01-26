@@ -17,11 +17,13 @@
     </div>
 
     <!-- CATEGORY FILTERS -->
-    <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
-        <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
+    <div class="flex gap-4 mb-8 overflow-x-auto pb-2 px-2 pt-2">
+        <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600/50"
             data-category="all">All</button>
-        <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600"
+        <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600/50"
             data-category="Hoodies">Hoodies</button>
+        <button class="filter-btn px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-purple-600/50"
+            data-category="Oversized">Oversized</button>
     </div>
 
     <!-- PRODUCT GRID -->
@@ -72,8 +74,37 @@
     }
 
     // Display products on screen
-    function displayProducts(list) {
+    function displayProducts(list, activeFilter) {
         const container = document.getElementById("productsList");
+
+        if (activeFilter) {
+            document.querySelectorAll(".filter-btn").forEach(btn => {
+                btn.classList.remove("bg-purple-700/40");
+                btn.classList.remove("ring-2");
+                btn.classList.remove("ring-purple-700/60");
+                btn.classList.add("bg-white/5");
+                if (btn.dataset.category === activeFilter) {
+                    btn.classList.add("bg-purple-700/40");
+                    btn.classList.add("ring-2");
+                    btn.classList.add("ring-purple-700/60");
+                    btn.classList.remove("bg-white/5");
+                }
+            });
+        }
+        else {
+            document.querySelectorAll(".filter-btn").forEach(btn => {
+                btn.classList.remove("bg-purple-700/40");
+                btn.classList.remove("ring-2");
+                btn.classList.remove("ring-purple-700/60");
+                btn.classList.add("bg-white/5");
+                if (btn.dataset.category === "all") {
+                    btn.classList.add("bg-purple-700/40");
+                    btn.classList.add("ring-2");
+                    btn.classList.add("ring-purple-700/60");
+                    btn.classList.remove("bg-white/5");
+                }
+            });
+        }
 
         if (!list.length) {
             container.innerHTML = `<p class="text-gray-400">No products found.</p>`;
@@ -122,10 +153,10 @@
             const cat = btn.dataset.category;
 
             if (cat === "all") {
-                displayProducts(allProducts);
+                displayProducts(allProducts, "all");
             } else {
                 const filtered = allProducts.filter(p => (p.category || "").toLowerCase() === cat.toLowerCase());
-                displayProducts(filtered);
+                displayProducts(filtered, cat);
             }
         });
     });

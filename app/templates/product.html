@@ -44,6 +44,13 @@
                 ₹<span id="newPrice">{{ product.price }}</span>
             </p>
 
+            {% if not product.is_active %}
+            <div class="mt-4 p-3 rounded-xl bg-red-600/10 border border-red-500/20 text-red-300 text-sm">
+                This product is currently unavailable.
+            </div>
+            {% endif %}
+            <!-- NEW YEAR OFFER BADGE -->
+
             <p class="mt-2 inline-block px-3 py-1 text-xs sm:text-sm
             max-w-full break-words text-center
             bg-teal-500/20 border border-teal-500/30
@@ -53,8 +60,47 @@
             </p>
 
             {% if product.description %}
-            <pre class="mt-4 text-gray-300 leading-normal text-wrap font-[Poppins]">{{ product.description }}</pre>
+            {% set raw = product.description %}
+            {% set upper = raw.upper() %}
+
+            {% set desc_start = upper.find('DESCRIPTION') %}
+            {% set feat_start = upper.find('FEATURES') %}
+            {% set care_start = upper.find('CARE') %}
+
+            {% set desc_text = raw[
+            desc_start + 11 :
+            feat_start if feat_start != -1 else
+            care_start if care_start != -1 else
+            None
+            ].strip() if desc_start != -1 else '' %}
+
+            {% set feat_text = raw[
+            feat_start + 8 :
+            care_start if care_start != -1 else None
+            ].strip() if feat_start != -1 else '' %}
+
+            {% set care_text = raw[
+            care_start + 4 :
+            ].strip() if care_start != -1 else '' %}
+
+            {% if desc_text %}
+            <details open class="mt-6 group bg-black/05 border border-white/10 rounded-2xl">
+                <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                    <span class="text-lg font-semibold">Description</span>
+                    <span class="text-purple-400 group-open:rotate-180 transition"><i
+                            class="fa-solid fa-angle-down"></i></span>
+                </summary>
+                <div class="px-5 pb-4 border-t border-white/10 text-gray-300
+            whitespace-pre-line break-words leading-relaxed text-sm sm:text-base">
+
+                    {{ desc_text }}
+                </div>
+            </details>
             {% endif %}
+            {% endif %}
+
+
+
 
             <!-- COLOR SELECTOR -->
             <div class="mt-6">
@@ -111,19 +157,102 @@
 
             <p id="actionMessage" class="text-lg text-purple-400 mt-2"></p>
 
+            <!-- COUPON INPUT -->
+            {% if product.is_active %}
+            <div class="mt-4 mb-6">
+                <label class="block text-sm text-gray-400 mb-2">Have a coupon?</label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input id="couponInput" type="text" placeholder="Enter coupon code" class="w-full sm:flex-1 px-4 py-3 bg-black/40 border border-white/10
+                  rounded-xl focus:outline-none focus:border-purple-500 uppercase" />
+
+                    <button onclick="applyBuyNowCoupon()"
+                        class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600 px-6 py-3 rounded-lg font-medium transition">
+
+                        Apply
+                    </button>
+                </div>
+
+            </div>
+            {% endif %}
+
+
             <!-- BUTTONS -->
             <div class="flex flex-col sm:flex-row gap-4 mt-8">
-                <button id="addToCartBtn" onclick="addToCart()"
-                    class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+
+                {% if product.is_active %}
+                <button id="addToCartBtn" onclick="addToCart()" class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900
+           px-6 py-3 rounded-lg font-semibold transition">
                     ADD TO CART
                 </button>
 
                 <button id="buyNowBtn"
                     onclick="buyNow('{{ product.id }}', selectedVariant?.variant_id, parseInt(quantityInput.value || 1))"
-                    class="flex-1 bg-purple-600 hover:bg-purple-800 active:bg-purple-900 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="flex-1 bg-purple-600 hover:bg-purple-800 px-6 py-3 rounded-lg font-semibold transition">
                     BUY NOW
                 </button>
+                {% else %}
+                <button disabled class="flex-1 bg-gray-700 text-gray-400 px-6 py-3 rounded-lg cursor-not-allowed">
+                    UNAVAILABLE
+                </button>
+                {% endif %}
+
             </div>
+
+
+            <!-- ADD TO CART FEEDBACK STRIP -->
+            <div id="cartFeedback" class="hidden mt-4 flex flex-col sm:flex-row
+            sm:items-center sm:justify-between gap-3
+            bg-green-500/10 border border-green-500/30
+            text-green-300 px-4 py-3 rounded-xl text-sm">
+
+
+                <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Added to cart
+                </span>
+
+                <div class="flex items-center gap-3">
+                    <a href="/cart-page"
+                        class="text-purple-400 hover:text-purple-200 hover:bg-purple-400/40 px-3 py-1 rounded-lg hover:border hover:border-purple-400 font-semibold">
+                        View Cart →
+                    </a>
+
+                    <button onclick="hideCartFeedback()" class="text-gray-400 hover:text-white">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+
+                {% if feat_text %}
+                <details class="group bg-black/40 border border-white/10 rounded-2xl">
+                    <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                        <span class="text-lg font-semibold">Features</span>
+                        <span class="text-purple-400 group-open:rotate-180 transition"><i
+                                class="fa-solid fa-angle-down"></i></span>
+                    </summary>
+                    <div class="px-5 pb-4 border-t border-white/10 text-gray-300 whitespace-pre-line">
+                        {{ feat_text }}
+                    </div>
+                </details>
+                {% endif %}
+
+                {% if care_text %}
+                <details class="group bg-black/40 border border-white/10 rounded-2xl">
+                    <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                        <span class="text-lg font-semibold">Care & Instructions</span>
+                        <span class="text-purple-400 group-open:rotate-180 transition"><i
+                                class="fa-solid fa-angle-down"></i></span>
+                    </summary>
+                    <div class="px-5 pb-4 border-t border-white/10 text-gray-300 whitespace-pre-line">
+                        {{ care_text }}
+                    </div>
+                </details>
+                {% endif %}
+
+            </div>
+
 
             <!-- SIZE CHART -->
             <details class="mt-8 bg-purple-600/20 border border-white/10 rounded-xl overflow-hidden">
@@ -238,45 +367,23 @@
 
 <!-- JS -->
 <script>
+    const PRODUCT_ACTIVE = {{ 'true' if product.is_active else 'false' }};
     let discountPercentage = 0.26;
     let basePrice = parseFloat('{{ product.price }}');
     let newPrice = basePrice
     const oldPrice = Math.round(newPrice / (1 - discountPercentage));
     document.getElementById("oldPrice").innerText = oldPrice;
 
+    let selectedColor = null;
+    let selectedSize = null;
+    let selectedVariant = null;
 
-
-    // async function applyFirstOrderDiscount() {
-    //     const token = localStorage.getItem("access_token");
-
-    //     const firstOrderBadge = document.getElementById("firstOrderBadge");
-    //     const loginDiscountBadge = document.getElementById("loginDiscountBadge");
-
-    //     // 🟡 USER NOT LOGGED IN
-    //     if (!token) {
-    //         if (loginDiscountBadge) loginDiscountBadge.classList.remove("hidden");
-    //         return;
-    //     }
-
-    //     // 🟢 USER LOGGED IN → check first order
-    //     const res = await fetch("/user/first-order", {
-    //         headers: { "Authorization": "Bearer " + token }
-    //     });
-
-    //     const data = await res.json();
-    //     console.log("First order data:", data);
-
-    //     if (data.is_first_order) {
-    //         // Apply extra 10% discount
-    //         newPrice = Math.round(newPrice * 0.9);
-    //         basePrice = newPrice;
-    //         document.getElementById("newPrice").innerText = newPrice;
-
-    //         // Show first-order badge
-    //         if (firstOrderBadge) firstOrderBadge.classList.remove("hidden");
-    //     }
-    // }
-
+    const statusEl = document.getElementById("variantStatus");
+    const priceEl = document.getElementById("variantPrice");
+    const qtyInput = document.getElementById("quantityInput");
+    const actionMessage = document.getElementById("actionMessage");
+    const addBtn = document.getElementById("addToCartBtn");
+    const buyBtn = document.getElementById("buyNowBtn");
 
     // Canonical size order (extend anytime)
     const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
@@ -288,96 +395,8 @@
         );
     }
 
-
-
     const COLOR_DATA = JSON.parse('{{ color_data | tojson | safe }}') || {};
-
-
-    let selectedColor = null;
-    let selectedSize = null;
-    let selectedVariant = null;
-
     console.log("Variant Data:", COLOR_DATA);
-
-    const statusEl = document.getElementById("variantStatus");
-    const priceEl = document.getElementById("variantPrice");
-    const qtyInput = document.getElementById("quantityInput");
-    const actionMessage = document.getElementById("actionMessage");
-    const addBtn = document.getElementById("addToCartBtn");
-    const buyBtn = document.getElementById("buyNowBtn");
-
-    async function payWithRazorpayBuyNow(orderId) {
-        const token = localStorage.getItem("access_token");
-
-        try {
-            SNIIPE.showLoading(buyBtn, "Processing...");
-            // 1. Create Razorpay order
-            const res = await fetch("/payments/razorpay/create-order", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify({ order_id: orderId })
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                alert(data.error || "Failed to initiate payment");
-                return;
-            }
-
-            // 2. Open Razorpay Checkout
-            const options = {
-                key: data.key,
-                amount: data.amount,
-                currency: data.currency,
-                name: "SNIIPE",
-                description: data.description,
-                order_id: data.razorpay_order_id,
-
-                handler: async function (response) {
-                    // 3. Verify payment
-                    const verifyRes = await fetch("/payments/razorpay/verify", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": "Bearer " + token
-                        },
-                        body: JSON.stringify({
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature
-                        })
-                    });
-
-                    const verifyData = await verifyRes.json();
-                    if (!verifyRes.ok) {
-                        alert(verifyData.error || "Payment verification failed");
-                        return;
-                    }
-
-                    alert("Payment successful! 🎉");
-                    window.location.href = "/profile"; // or order success page
-                },
-
-                modal: {
-                    ondismiss: function () {
-                        alert("Payment cancelled. You can try again or pay via WhatsApp.");
-                    }
-                },
-
-                theme: { color: "#7c3aed" }
-            };
-
-            const rzp = new Razorpay(options);
-            rzp.open();
-
-        } catch (e) {
-            alert("Network error. Please try again.");
-        }
-    }
-
 
     function selectColor(color) {
         selectedColor = color;
@@ -393,6 +412,7 @@
         renderImagesForColor(color);
         renderSizesForColor(color);
         updateVariantState();
+        resetBuyNowCoupon();
 
     }
 
@@ -468,6 +488,8 @@
             document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
             updateVariantState();
         }
+        resetBuyNowCoupon();
+
     }
 
     function findVariant() {
@@ -506,6 +528,7 @@
             }
         }
 
+        // --Note: This is still here for future use of price overrides
         // const price = selectedVariant.price_override ?? basePrice;
         // priceEl.innerText = `₹${price}`;
 
@@ -539,9 +562,14 @@
             current = Math.min(current, selectedVariant.stock);
         }
         qtyInput.value = current;
+        resetBuyNowCoupon();
     }
 
+
+    // CART AND BUY NOW FLOW
+
     async function addToCart() {
+        if (!PRODUCT_ACTIVE) return;
         const token = localStorage.getItem("access_token");
         if (!token) {
             SNIIPE.goProtected("/cart-page");
@@ -614,6 +642,8 @@
             // Update stock display
             selectedVariant.stock -= quantity;
             updateVariantState();
+            updateCartCount();
+            showCartFeedback();
 
         } catch (error) {
             console.error("Add to cart error:", error);
@@ -624,7 +654,25 @@
         }
     }
 
+    function showCartFeedback() {
+        const el = document.getElementById("cartFeedback");
+        if (!el) return;
+
+        el.classList.remove("hidden");
+
+        // auto-hide after 4s
+        setTimeout(() => {
+            el.classList.add("hidden");
+        }, 4000);
+    }
+
+    function hideCartFeedback() {
+        document.getElementById("cartFeedback")?.classList.add("hidden");
+    }
+
+
     function buyNow(productId, variantId, quantity) {
+        if (!PRODUCT_ACTIVE) return;
         const token = localStorage.getItem("access_token");
         if (!token) {
             SNIIPE.goProtected("/home");
@@ -638,18 +686,152 @@
             }
             openAddressModal({
                 type: "buy_now",
-                payload: { productId, variantId, quantity }
+                payload: {
+                    product_id: productId,
+                    variant_id: variantId,
+                    quantity: quantity,
+                    coupon_code: window.appliedCoupon?.coupon_code || null
+                }
             });
         });
-        // openAddressModal({
-        //     type: "buy_now",
-        //     payload: { productId, variantId, quantity }
-        // });
+    }
+
+
+    // COUPON FLOW
+
+    window.buyNowCoupon = null;
+
+    function applyBuyNowCoupon() {
+        const token = localStorage.getItem("access_token");
+        const code = document.getElementById("couponInput").value.trim();
+
+        if (!code) {
+            alert("Enter coupon code");
+            return;
+        }
+
+        if (!selectedVariant) {
+            alert("Select color & size first");
+            return;
+        }
+
+        const qty = parseInt(document.getElementById("quantityInput").value || 1);
+        if (qty < 1) {
+            alert("Invalid quantity");
+            return;
+        }
+
+        applyCoupon("buy_now", {
+            product_id: "{{ product.id }}",
+            variant_id: selectedVariant.variant_id,
+            quantity: qty
+        });
+    }
+
+    function confirmCoupon() {
+        document.getElementById("couponModal").classList.add("hidden");
+
+        if (window.appliedCoupon) {
+            document.getElementById("newPrice").innerText =
+                window.appliedCoupon.final_total;
+
+            // Lock input
+            document.getElementById("couponInput").disabled = true;
+            document.getElementById("couponInput").classList.add("opacity-60");
+        }
+    }
+
+    function resetBuyNowCoupon() {
+        window.appliedCoupon = null;
+        const input = document.getElementById("couponInput");
+        if (input) {
+            input.disabled = false;
+            input.value = "";
+            input.classList.remove("opacity-60");
+        }
+    }
+
+
+
+    // RAZORPAY PAYMENT FLOW
+
+    async function payWithRazorpayBuyNow(orderId) {
+        const token = localStorage.getItem("access_token");
+
+        try {
+            SNIIPE.showLoading(buyBtn, "Processing...");
+            // 1. Create Razorpay order
+            const res = await fetch("/payments/razorpay/create-order", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ order_id: orderId })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || "Failed to initiate payment");
+                return;
+            }
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: data.key,
+                amount: data.amount,
+                currency: data.currency,
+                name: "SNIIPE",
+                description: data.description,
+                order_id: data.razorpay_order_id,
+
+                handler: async function (response) {
+                    // 3. Verify payment
+                    const verifyRes = await fetch("/payments/razorpay/verify", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + token
+                        },
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+                    if (!verifyRes.ok) {
+                        alert(verifyData.error || "Payment verification failed");
+                        return;
+                    }
+
+                    alert("Payment successful! 🎉");
+                    window.location.href = "/profile"; // or order success page
+                },
+
+                modal: {
+                    ondismiss: function () {
+                        alert("Payment cancelled. You can try again or pay via WhatsApp.");
+                    }
+                },
+
+                theme: { color: "#7c3aed" }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+
+        } catch (e) {
+            alert("Network error. Please try again.");
+        }
     }
 
     async function startBuyNowWithAddress(addressId, payload) {
         SNIIPE.showLoading(buyBtn, "Processing...");
         const token = localStorage.getItem("access_token");
+        console.log("payload:", payload);
+
 
         const res = await fetch("/checkout/razorpay/buy-now", {
             method: "POST",
@@ -658,16 +840,21 @@
                 "Authorization": "Bearer " + token
             },
             body: JSON.stringify({
-                product_id: payload.productId,
-                variant_id: payload.variantId,
+                product_id: payload.product_id,
+                variant_id: payload.variant_id,
                 quantity: payload.quantity,
-                address_id: addressId
+                address_id: addressId,
+                coupon_code: payload.coupon_code
             })
         });
 
         const data = await res.json();
         if (!res.ok) {
             alert(data.error || "Checkout failed");
+            return;
+        }
+        if (data.payment_required === false) {
+            showOrderSuccessPopup(data.order_id);
             return;
         }
 
