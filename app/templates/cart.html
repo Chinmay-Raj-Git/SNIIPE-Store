@@ -127,11 +127,12 @@
             container.innerHTML = cartData.cart.map(item => `
             <div class="bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-2xl mb-4 hover:border-purple-500/30 transition">
                 <div class="flex flex-col sm:flex-row gap-6">
-                    <img src="${item.image_url || '/static/img/placeholder.webp'}"
+                    <img src="${item.thumbnail || '/static/img/placeholder.webp'}"
                          alt="${item.product_name}"
                          class="w-full sm:w-32 h-32 object-cover rounded-xl">
 
                     <div class="flex-1">
+                        ${item.is_free_item ? '<span class="text-green-400">FREE 🎁</span>' : ''}
                         <h2 class="text-xl font-semibold mb-2">${item.product_name}</h2>
                         <div class="flex flex-wrap gap-4 text-sm text-gray-400 mb-4">
                             ${item.variant_color ? `<span>Color: <span class="text-white">${item.variant_color}</span></span>` : ''}

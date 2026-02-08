@@ -115,19 +115,22 @@
         <a href="/product/${p.id}"
            class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
 
-            <div class="overflow-hidden">
+            <div class="overflow-hidden relative">
                 <img src="${p.thumbnail || '/static/img/placeholder.webp'}"
 
                      alt="${p.name}"
                      class="w-full h-80 object-cover rounded-lg group-hover:scale-105 transition duration-500">
+
+                
+                <span class="absolute bottom-0.5 left-1 bg-pink-600/80 text-white text-[0.9rem] px-2 py-1 rounded-lg">
+                  BUY 1 GET 1 FREE
+                </span>
             </div>
 
             <div class="p-5">
                 <h3 class="text-xl font-semibold">${p.name}</h3>
                 <p class="text-gray-400">${p.category || 'Clothing'}</p>
-                <p class="text-gray-400 line-through text-sm">
-                ₹${Math.round(p.price * 1.35)}
-                </p>
+
                 <p class="text-purple-400 font-bold">
                 ₹${p.price}
                 </p>

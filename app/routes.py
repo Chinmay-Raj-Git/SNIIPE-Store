@@ -688,7 +688,8 @@ def get_cart():
             "variant_size": item.variant.size if item.variant else None,
             "quantity": item.quantity,
             "price": item.price_at_time,
-            "subtotal": item.quantity * item.price_at_time
+            "subtotal": item.quantity * item.price_at_time,
+            "is_free_item": item.is_free_item
         }
         total += product_info["subtotal"]
         cart_items.append(product_info)
@@ -719,7 +720,82 @@ def cart_count():
 @bp.route("/cart/add", methods=["POST"])
 @require_auth
 def add_to_cart():
-    data = request.json
+    data = request.json or {}
+    print("BOGO DATA:", data)
+
+
+    # -----------------------------
+    # BOGO PAYLOAD
+    # -----------------------------
+    main_product = data.get("main_product")
+    free_product = data.get("free_product")
+
+    user_id = g.user.id
+
+    cart = Cart.query.filter_by(user_id=user_id).first()
+    if not cart:
+        cart = Cart(user_id=user_id)
+        db.session.add(cart)
+        db.session.commit()
+
+    # ======================================================
+    # ⭐ BOGO FLOW FIRST (IMPORTANT)
+    # ======================================================
+
+    if main_product and free_product:
+
+        main_product_id = main_product.get("product_id")
+        main_variant_id = main_product.get("variant_id")
+        main_quantity = main_product.get("quantity", 1)
+
+        free_product_id = free_product.get("product_id")
+        free_variant_id = free_product.get("variant_id")
+
+        if not main_product_id or not free_product_id:
+            return jsonify({"error": "Invalid BOGO payload"}), 400
+
+        main_prod = Product.query.get(main_product_id)
+        free_prod = Product.query.get(free_product_id)
+
+        if not main_prod or not free_prod:
+            return jsonify({"error": "Product not found"}), 404
+
+        main_price = Decimal(main_prod.price)
+
+        if main_variant_id:
+            variant = Product_Variants.query.get(main_variant_id)
+            if variant and variant.price_override:
+                main_price = Decimal(variant.price_override)
+
+        # ADD MAIN ITEM
+        main_item = CartItem(
+            cart_id=cart.id,
+            product_id=main_product_id,
+            variant_id=main_variant_id,
+            quantity=main_quantity,
+            price_at_time=main_price,
+            is_free_item=False
+        )
+
+        db.session.add(main_item)
+        db.session.flush()
+
+        # ADD FREE ITEM
+        free_item = CartItem(
+            cart_id=cart.id,
+            product_id=free_product_id,
+            variant_id=free_variant_id,
+            quantity=1,
+            price_at_time=Decimal("0.00"),
+            is_free_item=True,
+            parent_cart_item_id=main_item.id
+        )
+
+        db.session.add(free_item)
+        db.session.commit()
+
+        return jsonify({"message": "BOGO items added successfully"})
+
     product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = data.get("quantity", 1)
@@ -1441,7 +1517,7 @@ def razorpay_cart_checkout():
             return jsonify({
                 "error": f"Insufficient stock for {item.product.name}"
             }), 400
-        price = item.variant.price_override or item.product.price
+        price = item.price_at_time
         subtotal += price * item.quantity
 
     cleanup_stale_pending_orders(g.user.id)

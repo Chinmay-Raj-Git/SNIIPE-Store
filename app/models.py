@@ -114,6 +114,9 @@ class CartItem(db.Model):
     cart = db.relationship('Cart', backref=db.backref('items', cascade='all, delete-orphan'))
     product = db.relationship('Product', backref='cart_items')
     variant = db.relationship('Product_Variants', backref='cart_items')
+    
+    is_free_item = db.Column(db.Boolean, default=False)
+    parent_cart_item_id = db.Column(db.Integer, nullable=True)
 
 
 # -----------------------------

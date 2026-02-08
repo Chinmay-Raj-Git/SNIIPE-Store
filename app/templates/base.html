@@ -353,6 +353,7 @@
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         window.supabaseClient = window.supabase.createClient(
             "{{ config['SUPABASE_URL'] }}",
@@ -429,7 +430,6 @@
                 profileNavMobile?.classList.add("hidden");
             }
         }
-
         function updateCartCount() {
             const desktop = document.getElementById("cart-items-num");
             const mobile = document.getElementById("cart-items-num-mobile");
@@ -466,7 +466,6 @@
                     mobile?.classList.add("hidden");
                 });
         }
-
 
         // UTILITY FUNCTIONS
         function showLoader() {

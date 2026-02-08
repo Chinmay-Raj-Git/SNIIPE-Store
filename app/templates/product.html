@@ -35,10 +35,10 @@
                 In-store
             </span>
 
-            <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through">
-                ₹<span id="oldPrice"></span>
-            <p class="text-purple-400"><i class="fa-solid fa-tag"></i> 26% OFF!</p>
-            </p>
+            <!-- <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through"> -->
+            <!-- ₹<span id="oldPrice"></span> -->
+            <!-- <p class="text-purple-400"><i class="fa-solid fa-tag"></i> 26% OFF!</p> -->
+            <!-- </p> -->
 
             <p class="text-3xl font-semibold mt-4 text-purple-300">
                 ₹<span id="newPrice">{{ product.price }}</span>
@@ -49,15 +49,27 @@
                 This product is currently unavailable.
             </div>
             {% endif %}
-            <!-- NEW YEAR OFFER BADGE -->
 
-            <p class="mt-2 inline-block px-3 py-1 text-xs sm:text-sm
-            max-w-full break-words text-center
-            bg-teal-500/20 border border-teal-500/30
-            rounded-full text-teal-300">
+            <!-- VALENTINE PROMO PANEL -->
+            <div class="mt-4 rounded-2xl border border-pink-500/60 bg-pink-600/20 p-4">
 
-                🎉 NEW YEAR OFFER: 26% OFF — Valid till Jan 31
-            </p>
+                <p class="text-base font-semibold tracking-wide text-pink-400">
+                    <i class="fa-solid fa-heart text-lg px-1.5"></i>
+                    <span>VALENTINE WEEK OFFER</span>
+                </p>
+
+                <p class="text-base text-gray-300 mt-1">
+                    Buy <span class="text-rose-400">1 Hoodie</span> and get another <span
+                        class="text-rose-400">FREE</span>.
+                </p>
+
+                <p class="text-sm text-gray-400 mt-2">
+                    A free hoodie will be added automatically. <br>
+                    You may choose a different free gift below.
+                </p>
+
+            </div>
+
 
             {% if product.description %}
             {% set raw = product.description %}
@@ -197,6 +209,43 @@
                 {% endif %}
 
             </div>
+
+            <!-- OFFER MODAL -->
+            <!-- BOGO MODAL -->
+            <div id="bogoModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+
+                <div class="bg-black border border-white/10 rounded-2xl p-6 w-full max-w-lg">
+
+                    <h2 class="text-xl font-semibold mb-4">
+                        Choose your FREE Hoodie 🎁
+                    </h2>
+
+                    <div id="bogoProducts" class="space-y-3 max-h-80 overflow-y-auto"></div>
+                    <!-- FREE VARIANT SELECTORS -->
+                    <div id="bogoVariantSection" class="hidden mt-4">
+
+                        <p class="text-sm text-gray-400">Color</p>
+                        <div id="bogoColors" class="flex flex-wrap gap-2 mt-2"></div>
+
+                        <p class="text-sm text-gray-400 mt-4">Size</p>
+                        <div id="bogoSizes" class="flex flex-wrap gap-2 mt-2"></div>
+
+                    </div>
+
+
+                    <div class="flex justify-end mt-4 gap-3">
+                        <button onclick="closeBogoModal()" class="px-4 py-2 border border-white/10 rounded-xl">
+                            Cancel
+                        </button>
+
+                        <button onclick="confirmBogo()" class="px-4 py-2 bg-purple-600 rounded-xl">
+                            Confirm
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
 
 
             <!-- ADD TO CART FEEDBACK STRIP -->
@@ -371,8 +420,8 @@
     let discountPercentage = 0.26;
     let basePrice = parseFloat('{{ product.price }}');
     let newPrice = basePrice
-    const oldPrice = Math.round(newPrice / (1 - discountPercentage));
-    document.getElementById("oldPrice").innerText = oldPrice;
+    // const oldPrice = Math.round(newPrice / (1 - discountPercentage));
+    // document.getElementById("oldPrice").innerText = oldPrice;
 
     let selectedColor = null;
     let selectedSize = null;
@@ -568,90 +617,241 @@
 
     // CART AND BUY NOW FLOW
 
-    async function addToCart() {
-        if (!PRODUCT_ACTIVE) return;
+    let selectedFreeProduct = null;
+    let selectedFreeVariant = null;
+    let freeVariantsData = [];
+    let selectedFreeColor = null;
+
+    function selectFreeProduct(id) {
+
+        selectedFreeProduct = id;
+        selectedFreeVariant = null;
+        selectedFreeColor = null;
+
+        fetch(`/products/${id}/variants`)
+            .then(r => r.json())
+            .then(data => {
+
+                // ONLY variants with stock > 0
+                freeVariantsData = data.filter(v => v.stock > 0);
+
+                const colors = [...new Set(freeVariantsData.map(v => v.color))];
+
+                document.getElementById("bogoVariantSection").classList.remove("hidden");
+
+                document.getElementById("bogoColors").innerHTML =
+                    colors.map(c => `
+                <button
+                    id="bogo-color-${c}"
+                    onclick="selectFreeColor('${c}')"
+                    class="px-3 py-1 border border-white/10 rounded-lg
+                           bg-black/40 hover:border-purple-500 transition">
+                    ${c}
+                </button>
+            `).join("");
+
+                document.getElementById("bogoSizes").innerHTML = "";
+            });
+    }
+
+
+
+    function selectFreeColor(color) {
+
+        selectedFreeColor = color;
+        selectedFreeVariant = null;
+
+        // highlight selected color
+        document.querySelectorAll("#bogoColors button").forEach(btn => {
+            btn.classList.remove("border-purple-500", "bg-purple-600/20");
+        });
+
+        const selectedBtn = document.getElementById(`bogo-color-${color}`);
+        if (selectedBtn) {
+            selectedBtn.classList.add("border-purple-500", "bg-purple-600/20");
+        }
+
+        const sizes = freeVariantsData.filter(v => v.color === color);
+
+        document.getElementById("bogoSizes").innerHTML =
+            sizes.map(s => `
+            <button
+                id="bogo-size-${s.id}"
+                onclick="selectFreeSize(${s.id})"
+                class="px-3 py-1 border border-white/10 rounded-lg
+                       bg-black/40 hover:border-purple-500 transition">
+                ${s.size}
+            </button>
+        `).join("");
+    }
+
+
+
+    function selectFreeSize(variantId) {
+
+        selectedFreeVariant = variantId;
+
+        // highlight selected size
+        document.querySelectorAll("#bogoSizes button").forEach(btn => {
+            btn.classList.remove("border-purple-500", "bg-purple-600/20");
+        });
+
+        const selectedBtn = document.getElementById(`bogo-size-${variantId}`);
+        if (selectedBtn) {
+            selectedBtn.classList.add("border-purple-500", "bg-purple-600/20");
+        }
+    }
+
+
+
+    function openBogoModal() {
+
+        document.getElementById("bogoModal").classList.remove("hidden");
+
+        fetch("/products")
+            .then(r => r.json())
+            .then(products => {
+
+                const container = document.getElementById("bogoProducts");
+
+                container.innerHTML = products.map(p => `
+        <div onclick="selectFreeProduct(${p.id})"
+             class="p-3 border border-white/10 rounded-xl cursor-pointer hover:border-purple-500">
+            ${p.name}
+        </div>
+      `).join("");
+
+            });
+    }
+
+    function closeBogoModal() {
+        document.getElementById("bogoModal").classList.add("hidden");
+    }
+
+    function confirmBogo() {
+
         const token = localStorage.getItem("access_token");
         if (!token) {
-            SNIIPE.goProtected("/cart-page");
+            SNIIPE.goProtected("/home");
+            return;
+        }
+        if (!selectedFreeProduct || !selectedFreeVariant) {
+            alert("Select free product color and size");
             return;
         }
 
-        const variant = findVariant();
 
-        if (!variant) {
-            SNIIPE.showError("Please select a color and size.", "actionMessage");
-            return;
-        }
+        fetch("/cart/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
 
-        if (variant.stock <= 0) {
-            SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
-            return;
-        }
-
-        const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
-
-        if (quantity <= 0) {
-            SNIIPE.showError("Quantity is invalid.", "actionMessage");
-            return;
-        }
-
-        if (quantity > variant.stock) {
-            SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
-            return;
-        }
-
-        // Show loading state
-        SNIIPE.showLoading(addBtn, "Adding...");
-        SNIIPE.showLoading(buyBtn, "Adding...");
-
-        try {
-            const res = await fetch("/cart/add", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
+                main_product: {
+                    product_id: {{ product.id }},
+            variant_id: selectedVariant?.variant_id,
+            quantity: parseInt(quantityInput.value || 1)
                 },
-                body: JSON.stringify({
-                    product_id: "{{ product.id }}",
-                    variant_id: variant.variant_id,
-                    quantity: quantity
-                })
-            });
+    free_product: {
+        product_id: selectedFreeProduct,
+            variant_id: selectedFreeVariant
+    }
+            })
+        }).then(() => {
+        window.location.href = "/cart-page";
+    });
 
-            const data = await res.json();
+}
 
-            if (!res.ok) {
-                // Handle error responses
-                if (res.status === 401) {
-                    SNIIPE.showError("Session expired. Please login again.", "actionMessage");
-                    setTimeout(() => {
-                        localStorage.removeItem("access_token");
-                        window.location.href = "/login-page";
-                    }, 2000);
-                } else if (res.status === 400) {
-                    SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
-                } else {
-                    SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
-                }
-                return;
-            }
 
-            // Success case
-            SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+    async function addToCart() {
+        if (!PRODUCT_ACTIVE) return;
+        openBogoModal();
+        return;
+        // const token = localStorage.getItem("access_token");
+        // if (!token) {
+        //     SNIIPE.goProtected("/cart-page");
+        //     return;
+        // }
 
-            // Update stock display
-            selectedVariant.stock -= quantity;
-            updateVariantState();
-            updateCartCount();
-            showCartFeedback();
+        // const variant = findVariant();
 
-        } catch (error) {
-            console.error("Add to cart error:", error);
-            SNIIPE.showError("Network error. Please try again.", "actionMessage");
-        } finally {
-            SNIIPE.hideLoading(addBtn);
-            SNIIPE.hideLoading(buyBtn);
-        }
+        // if (!variant) {
+        //     SNIIPE.showError("Please select a color and size.", "actionMessage");
+        //     return;
+        // }
+
+        // if (variant.stock <= 0) {
+        //     SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
+        //     return;
+        // }
+
+        // const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
+
+        // if (quantity <= 0) {
+        //     SNIIPE.showError("Quantity is invalid.", "actionMessage");
+        //     return;
+        // }
+
+        // if (quantity > variant.stock) {
+        //     SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
+        //     return;
+        // }
+
+        // // Show loading state
+        // SNIIPE.showLoading(addBtn, "Adding...");
+        // SNIIPE.showLoading(buyBtn, "Adding...");
+
+        // try {
+        //     const res = await fetch("/cart/add", {
+        //         method: "POST",
+        //         headers: {
+        //             "Content-Type": "application/json",
+        //             "Authorization": "Bearer " + token
+        //         },
+        //         body: JSON.stringify({
+        //             product_id: "{{ product.id }}",
+        //             variant_id: variant.variant_id,
+        //             quantity: quantity
+        //         })
+        //     });
+
+        //     const data = await res.json();
+
+        //     if (!res.ok) {
+        //         // Handle error responses
+        //         if (res.status === 401) {
+        //             SNIIPE.showError("Session expired. Please login again.", "actionMessage");
+        //             setTimeout(() => {
+        //                 localStorage.removeItem("access_token");
+        //                 window.location.href = "/login-page";
+        //             }, 2000);
+        //         } else if (res.status === 400) {
+        //             SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
+        //         } else {
+        //             SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
+        //         }
+        //         return;
+        //     }
+
+        //     // Success case
+        //     SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+
+        //     // Update stock display
+        //     selectedVariant.stock -= quantity;
+        //     updateVariantState();
+        //     updateCartCount();
+        //     showCartFeedback();
+
+        // } catch (error) {
+        //     console.error("Add to cart error:", error);
+        //     SNIIPE.showError("Network error. Please try again.", "actionMessage");
+        // } finally {
+        //     SNIIPE.hideLoading(addBtn);
+        //     SNIIPE.hideLoading(buyBtn);
+        // }
     }
 
     function showCartFeedback() {
@@ -678,22 +878,24 @@
             SNIIPE.goProtected("/home");
             return;
         }
-        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
-            if (!hasPhone) {
-                alert("Please add your phone number in your profile before proceeding.");
-                SNIIPE.goProtected("/profile");
-                return;
-            }
-            openAddressModal({
-                type: "buy_now",
-                payload: {
-                    product_id: productId,
-                    variant_id: variantId,
-                    quantity: quantity,
-                    coupon_code: window.appliedCoupon?.coupon_code || null
-                }
-            });
-        });
+        openBogoModal();
+
+        // const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
+        //     if (!hasPhone) {
+        //         alert("Please add your phone number in your profile before proceeding.");
+        //         SNIIPE.goProtected("/profile");
+        //         return;
+        //     }
+        //     openAddressModal({
+        //         type: "buy_now",
+        //         payload: {
+        //             product_id: productId,
+        //             variant_id: variantId,
+        //             quantity: quantity,
+        //             coupon_code: window.appliedCoupon?.coupon_code || null
+        //         }
+        //     });
+        // });
     }
 
 
