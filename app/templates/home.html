@@ -115,16 +115,24 @@
         <a href="/product/${p.id}"
            class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
 
-            <div class="overflow-hidden relative">
+            <div class="relative overflow-hidden">
+
                 <img src="${p.thumbnail || '/static/img/placeholder.webp'}"
+                    class="w-full h-80 object-cover rounded-lg transition duration-500
+                    ${p.is_out_of_stock ? 'opacity-60' : 'group-hover:scale-105'}">
 
-                     alt="${p.name}"
-                     class="w-full h-80 object-cover rounded-lg group-hover:scale-105 transition duration-500">
+                ${p.is_out_of_stock ? `
+                    <div class="absolute inset-0
+                                bg-gradient-to-b from-black/70 via-black/50 to-black/70
+                                flex items-center justify-center">
 
-                
-                <span class="absolute bottom-0.5 left-1 bg-pink-600/80 text-white text-[0.9rem] px-2 py-1 rounded-lg">
-                  BUY 1 GET 1 FREE
-                </span>
+                        <span class="text-red-400 font-bold text-lg tracking-widest">
+                            OUT OF STOCK
+                        </span>
+
+                    </div>
+                ` : ''}
+
             </div>
 
             <div class="p-5">

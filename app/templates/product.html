@@ -30,9 +30,18 @@
                     <p class="text-gray-400 uppercase tracking-widest mt-1">{{ product.category }}</p>
                 </div>
             </div>
-            <span
-                class="mb-2 px-3 py-1 rounded-full text-sm bg-purple-600/20 border border-purple-500/30 text-purple-200">
+            <span class="mb-2 px-3 py-1 rounded-full text-sm
+    {% if is_out_of_stock %}
+        bg-red-600/20 border border-red-500/30 text-red-300
+    {% else %}
+        bg-purple-600/20 border border-purple-500/30 text-purple-200
+    {% endif %}">
+
+                {% if is_out_of_stock %}
+                Out of Stock
+                {% else %}
                 In-store
+                {% endif %}
             </span>
 
             <!-- <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through"> -->
@@ -49,27 +58,6 @@
                 This product is currently unavailable.
             </div>
             {% endif %}
-
-            <!-- VALENTINE PROMO PANEL -->
-            <!-- <div class="mt-4 rounded-2xl border border-pink-500/60 bg-pink-600/20 p-4">
-
-                <p class="text-base font-semibold tracking-wide text-pink-400">
-                    <i class="fa-solid fa-heart text-lg px-1.5"></i>
-                    <span>VALENTINE WEEK OFFER</span>
-                </p>
-
-                <p class="text-base text-gray-300 mt-1">
-                    Buy <span class="text-rose-400">1 Hoodie</span> and get another <span
-                        class="text-rose-400">FREE</span>.
-                </p>
-
-                <p class="text-sm text-gray-400 mt-2">
-                    A free hoodie will be added automatically. <br>
-                    You may choose a different free gift below.
-                </p>
-
-            </div> -->
-
 
             {% if product.description %}
             {% set raw = product.description %}
@@ -396,10 +384,6 @@
             <div class="p-4">
                 <h3 class="text-lg font-semibold">{{ item.name }}</h3>
                 <p class="text-gray-400">{{ item.category or 'Clothing' }}</p>
-                <p class="text-gray-400 line-through text-sm">
-                    ₹{{ (item.price | float * 1.35) | round(0) }}
-                </p>
-
                 <p class="text-purple-400 font-bold">
                     ₹{{ item.price }}
                 </p>
@@ -768,90 +752,89 @@
 
     async function addToCart() {
         if (!PRODUCT_ACTIVE) return;
-        openBogoModal();
-        return;
-        // const token = localStorage.getItem("access_token");
-        // if (!token) {
-        //     SNIIPE.goProtected("/cart-page");
-        //     return;
-        // }
 
-        // const variant = findVariant();
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIIPE.goProtected("/cart-page");
+            return;
+        }
 
-        // if (!variant) {
-        //     SNIIPE.showError("Please select a color and size.", "actionMessage");
-        //     return;
-        // }
+        const variant = findVariant();
 
-        // if (variant.stock <= 0) {
-        //     SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
-        //     return;
-        // }
+        if (!variant) {
+            SNIIPE.showError("Please select a color and size.", "actionMessage");
+            return;
+        }
 
-        // const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
+        if (variant.stock <= 0) {
+            SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
+            return;
+        }
 
-        // if (quantity <= 0) {
-        //     SNIIPE.showError("Quantity is invalid.", "actionMessage");
-        //     return;
-        // }
+        const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
 
-        // if (quantity > variant.stock) {
-        //     SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
-        //     return;
-        // }
+        if (quantity <= 0) {
+            SNIIPE.showError("Quantity is invalid.", "actionMessage");
+            return;
+        }
 
-        // // Show loading state
-        // SNIIPE.showLoading(addBtn, "Adding...");
-        // SNIIPE.showLoading(buyBtn, "Adding...");
+        if (quantity > variant.stock) {
+            SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
+            return;
+        }
 
-        // try {
-        //     const res = await fetch("/cart/add", {
-        //         method: "POST",
-        //         headers: {
-        //             "Content-Type": "application/json",
-        //             "Authorization": "Bearer " + token
-        //         },
-        //         body: JSON.stringify({
-        //             product_id: "{{ product.id }}",
-        //             variant_id: variant.variant_id,
-        //             quantity: quantity
-        //         })
-        //     });
+        // Show loading state
+        SNIIPE.showLoading(addBtn, "Adding...");
+        SNIIPE.showLoading(buyBtn, "Adding...");
 
-        //     const data = await res.json();
+        try {
+            const res = await fetch("/cart/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    product_id: "{{ product.id }}",
+                    variant_id: variant.variant_id,
+                    quantity: quantity
+                })
+            });
 
-        //     if (!res.ok) {
-        //         // Handle error responses
-        //         if (res.status === 401) {
-        //             SNIIPE.showError("Session expired. Please login again.", "actionMessage");
-        //             setTimeout(() => {
-        //                 localStorage.removeItem("access_token");
-        //                 window.location.href = "/login-page";
-        //             }, 2000);
-        //         } else if (res.status === 400) {
-        //             SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
-        //         } else {
-        //             SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
-        //         }
-        //         return;
-        //     }
+            const data = await res.json();
 
-        //     // Success case
-        //     SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+            if (!res.ok) {
+                // Handle error responses
+                if (res.status === 401) {
+                    SNIIPE.showError("Session expired. Please login again.", "actionMessage");
+                    setTimeout(() => {
+                        localStorage.removeItem("access_token");
+                        window.location.href = "/login-page";
+                    }, 2000);
+                } else if (res.status === 400) {
+                    SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
+                } else {
+                    SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
+                }
+                return;
+            }
 
-        //     // Update stock display
-        //     selectedVariant.stock -= quantity;
-        //     updateVariantState();
-        //     updateCartCount();
-        //     showCartFeedback();
+            // Success case
+            SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
 
-        // } catch (error) {
-        //     console.error("Add to cart error:", error);
-        //     SNIIPE.showError("Network error. Please try again.", "actionMessage");
-        // } finally {
-        //     SNIIPE.hideLoading(addBtn);
-        //     SNIIPE.hideLoading(buyBtn);
-        // }
+            // Update stock display
+            selectedVariant.stock -= quantity;
+            updateVariantState();
+            updateCartCount();
+            showCartFeedback();
+
+        } catch (error) {
+            console.error("Add to cart error:", error);
+            SNIIPE.showError("Network error. Please try again.", "actionMessage");
+        } finally {
+            SNIIPE.hideLoading(addBtn);
+            SNIIPE.hideLoading(buyBtn);
+        }
     }
 
     function showCartFeedback() {
@@ -878,24 +861,24 @@
             SNIIPE.goProtected("/home");
             return;
         }
-        openBogoModal();
+        // openBogoModal();
 
-        // const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
-        //     if (!hasPhone) {
-        //         alert("Please add your phone number in your profile before proceeding.");
-        //         SNIIPE.goProtected("/profile");
-        //         return;
-        //     }
-        //     openAddressModal({
-        //         type: "buy_now",
-        //         payload: {
-        //             product_id: productId,
-        //             variant_id: variantId,
-        //             quantity: quantity,
-        //             coupon_code: window.appliedCoupon?.coupon_code || null
-        //         }
-        //     });
-        // });
+        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
+            if (!hasPhone) {
+                alert("Please add your phone number in your profile before proceeding.");
+                SNIIPE.goProtected("/profile");
+                return;
+            }
+            openAddressModal({
+                type: "buy_now",
+                payload: {
+                    product_id: productId,
+                    variant_id: variantId,
+                    quantity: quantity,
+                    coupon_code: window.appliedCoupon?.coupon_code || null
+                }
+            });
+        });
     }
 
 

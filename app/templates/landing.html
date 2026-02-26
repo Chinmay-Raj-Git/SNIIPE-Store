@@ -4,7 +4,7 @@
 {% block content %}
 
 <!-- ================= HERO ================= -->
-<section class="relative w-full h-[92vh] overflow-hidden font-sans">
+<!-- <section class="relative w-full h-[92vh] overflow-hidden font-sans">
   <div class="absolute inset-0 bg-gradient-to-br from-purple-900/30 to-black"></div>
 
   <img src="{{ url_for('static', filename='images/landing.png') }}"
@@ -27,42 +27,58 @@
       </a>
     </div>
   </div>
-</section>
+</section> -->
 
 <!-- ================= PARALLAX HERO SECTION ================= -->
-<!-- <section class="relative bg-black sticky top-0 h-screen overflow-hidden"> -->
+<section class="relative bg-black sticky top-0 h-screen overflow-hidden font-sans">
 
   <!-- Sticky Hero Container -->
-  <!-- <div class="sticky top-0 h-screen overflow-hidden"> -->
+  <div class="sticky top-0 h-screen overflow-hidden">
 
     <!-- Hero Image -->
-    <!-- <img src="{{ url_for('static', filename='images/landing.png') }}" -->
-      <!-- class="absolute inset-0 w-full h-[140%] object-cover object-[center_25%] opacity-70" alt="SNIIPE Streetwear"> -->
+    <img src="{{ url_for('static', filename='images/landing.png') }}"
+      class="absolute inset-0 w-full h-[140%] object-cover object-[center_25%] opacity-70" alt="SNIIPE Streetwear">
 
     <!-- Overlay -->
-    <!-- <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black"></div> -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black"></div>
 
     <!-- Hero Content -->
-    <!-- <div class="relative z-10 flex flex-col items-center justify-center h-full text-center px-6"> -->
-      <!-- <h1 class="text-4xl md:text-6xl font-bold tracking-wide"> -->
-        <!-- VALENTINE BUNDLE -->
-      <!-- </h1> -->
+    <!-- <div class="relative z-10 flex flex-col items-center justify-center h-full text-center px-6">
+      <h1 class="text-4xl md:text-6xl font-bold tracking-wide">
+        SNIIPE
+      </h1>
 
-      <!-- <p class="mt-4 text-gray-300 max-w-lg"> -->
-        <!-- Buy 1 Hoodie at ₹2499 & Get 1 FREE -->
-      <!-- </p> -->
+      <p class="mt-4 text-gray-300 max-w-lg">
+        Buy 1 Hoodie at ₹2499 & Get 1 FREE
+      </p>
 
-      <!-- <a href="/home" class="mt-8 px-8 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold transition"> -->
-        <!-- Shop Now -->
-      <!-- </a> -->
-    <!-- </div> -->
+      <a href="/home" class="mt-8 px-8 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold transition">
+        Shop Now
+      </a>
+    </div> -->
+    <div class="relative h-full flex items-center justify-center px-6">
+      <div class="text-center max-w-4xl">
+        <h1 class="text-7xl md:text-9xl font-black tracking-tight mb-6">
+          SN<span class="text-white">II</span>PE
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-300 mb-10">
+          Premium Streetwear that's focused on Quality Fabric.
+        </p>
 
-  <!-- </div> -->
+        <a href="/home"
+          class="relative inline-flex items-center gap-3 px-12 py-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl text-lg font-semibold shadow-xl transition group hover:scale-105">
+          Explore Store <i
+            class="fa-solid fa-arrow-right text-lg mt-0.5 group-hover:ml-1 group-hover:fa-arrow-right-long"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
 
   <!-- Scroll Spacer -->
-  <!-- <div class="h-[140vh]"></div> -->
+  <div class="h-[140vh]"></div>
 
-<!-- </section> -->
+</section>
 
 <section class="relative z-20 bg-[#0c0c0c]">
   <!-- ================= NEWS SLIDER ================= -->
@@ -242,14 +258,26 @@
     <a href="/product/${p.id}"
        class="group block border border-white/10 hover:border-purple-400 transition rounded-xl overflow-hidden bg-black/40">
 
-      <div class="overflow-hidden relative">
-        <img src="${p.thumbnail || '/static/img/placeholder.webp'}"
-             class="w-full h-80 object-cover group-hover:scale-105 transition duration-500">
-             
-        <span class="absolute bottom-0.5 left-1 bg-pink-600/80 text-white text-[0.9rem] px-2 py-1 rounded-lg">
-          BUY 1 GET 1 FREE
-        </span>
-      </div>
+      <div class="relative overflow-hidden">
+
+                <img src="${p.thumbnail || '/static/img/placeholder.webp'}"
+                    class="w-full h-80 object-cover rounded-lg transition duration-500
+                    ${p.is_out_of_stock ? 'opacity-60' : 'group-hover:scale-105'}">
+
+                ${p.is_out_of_stock ? `
+                    <div class="absolute inset-0
+                                bg-gradient-to-b from-black/70 via-black/50 to-black/70
+                                flex items-center justify-center">
+
+                        <span class="text-red-400 font-bold text-lg tracking-widest">
+                            OUT OF STOCK
+                        </span>
+
+                    </div>
+                ` : ''}
+
+            </div>
+
 
       <div class="p-5">
         <h3 class="text-xl font-semibold">${p.name}</h3>

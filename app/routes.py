@@ -10,7 +10,7 @@ import razorpay
 from flask import current_app as app
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 
 bp = Blueprint("routes", __name__)
 
@@ -149,24 +149,59 @@ def validate_and_apply_coupon(subtotal, coupon_code, user_id):
 @bp.route("/products", methods=["GET"])
 def get_products():
     products = Product.query.filter_by(is_active=True).all()
+    # JOIN with variants and compute total stock per product
+    products_with_stock = (
+        db.session.query(
+            Product,
+            func.coalesce(func.sum(Product_Variants.stock), 0).label("total_stock")
+        )
+        .outerjoin(Product_Variants, Product.id == Product_Variants.product_id)
+        .filter(Product.is_active == True)
+        .group_by(Product.id)
+        .all()
+    )
 
     response = []
-    for p in products:
+    # response = []
+
+    for product, total_stock in products_with_stock:
+
         thumbnail = Product_Variant_Images.query.filter_by(
-            product_id=p.id,
+            product_id=product.id,
             role="thumbnail"
         ).order_by(Product_Variant_Images.sort_order.asc()).first()
 
         response.append({
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "price": float(p.price),
-            "category": p.category,
-            "thumbnail": thumbnail.image_url if thumbnail else None
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": float(product.price),
+            "category": product.category,
+            "thumbnail": thumbnail.image_url if thumbnail else None,
+
+            # ⭐ new frontend flag
+            "is_out_of_stock": total_stock <= 0
         })
 
     return jsonify(response)
+    # for p in products:
+    #     thumbnail = Product_Variant_Images.query.filter_by(
+    #         product_id=p.id,
+    #         role="thumbnail"
+    #     ).order_by(Product_Variant_Images.sort_order.asc()).first()
+        
+        
+
+    #     response.append({
+    #         "id": p.id,
+    #         "name": p.name,
+    #         "description": p.description,
+    #         "price": float(p.price),
+    #         "category": p.category,
+    #         "thumbnail": thumbnail.image_url if thumbnail else None
+    #     })
+
+    # return jsonify(response)
 
 
 # -----------------------------
@@ -180,6 +215,9 @@ def product_page(product_id):
 
 
     variants = Product_Variants.query.filter_by(product_id=product_id).all()
+
+    total_stock = sum(v.stock for v in variants)
+    is_out_of_stock = total_stock <= 0  
 
     color_map = {}
 
@@ -237,7 +275,8 @@ def product_page(product_id):
         color_data=color_map,
         colors=colors,
         sizes=sizes,
-        similar_products=similar_products_data
+        similar_products=similar_products_data,
+        is_out_of_stock=is_out_of_stock
     )
 
 
