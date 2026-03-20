@@ -65,6 +65,26 @@
             animation: cartPulse 0.4s ease-in-out;
         }
     </style>
+
+    <!-- Meta Pixel Code -->
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ?
+                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0;
+            t.src = v; s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+        }(window, document, 'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1328359692436915');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=1328359692436915&ev=PageView&noscript=1" /></noscript>
+    <!-- End Meta Pixel Code -->
 </head>
 
 <body class="">
@@ -146,7 +166,8 @@
     </header>
 
     <!-- GLOBAL ANNOUNCEMENT BAR -->
-    <div id="global-announcement" class="relative overflow-hidden bg-gradient-to-r from-purple-600/70 to-pink-600/70 px-6 py-2 text-sm">
+    <div id="global-announcement"
+        class="relative overflow-hidden bg-gradient-to-r from-purple-600/70 to-pink-600/70 px-6 py-2 text-sm">
         <div id="global-news-slider" class="relative h-5 flex items-center justify-center">
 
             <span class="global-news-item absolute text-center px-4 text-xs sm:text-sm leading-snug
@@ -912,4 +933,3 @@
 </body>
 
 </html>
-
