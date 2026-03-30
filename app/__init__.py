@@ -31,8 +31,10 @@ def create_app():
     from flask_cors import CORS
 
     CORS(app, origins=[
-        "https://sniipe.in",   # your Vercel domain
-        "http://localhost:5173",          # local dev
+        "https://sniipe.in",
+        "https://www.sniipe.in",
+        "https://snipe-store.vercel.app",
+        "http://localhost:5173",         # local dev
     ], supports_credentials=True)
 
 
