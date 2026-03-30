@@ -10,8 +10,8 @@ async function initiateGoogleLogin() {
   const { createClient } = await import('@supabase/supabase-js')
 
   const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    import.meta.env.SUPABASE_URL,
+    import.meta.env.SUPABASE_ANON_KEY,
     {
       auth: {
         flowType: 'pkce',
