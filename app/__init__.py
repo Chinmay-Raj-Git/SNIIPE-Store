@@ -28,6 +28,12 @@ def create_app():
     app.config["SMTP_PASSWORD"] = os.getenv("SMTP_PASSWORD")
     app.config["ADMIN_NOTIFICATION_EMAIL"] = os.getenv("ADMIN_NOTIFICATION_EMAIL")
 
+    from flask_cors import CORS
+
+    CORS(app, origins=[
+        "https://sniipe.in",   # your Vercel domain
+        "http://localhost:5173",          # local dev
+    ], supports_credentials=True)
 
 
     db.init_app(app)

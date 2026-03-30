@@ -7,7 +7,7 @@ import { getToken } from '../utils/authUtils'
  * All future API calls should use this client.
  */
 const axiosClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
