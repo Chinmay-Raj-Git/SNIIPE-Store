@@ -162,14 +162,19 @@ def get_products():
     )
 
     response = []
-    # response = []
 
     for product, total_stock in products_with_stock:
 
-        thumbnail = Product_Variant_Images.query.filter_by(
+        # thumbnail = Product_Variant_Images.query.filter_by(
+        #     product_id=product.id,
+        #     role="thumbnail"
+        # ).order_by(Product_Variant_Images.sort_order.asc()).first()
+        
+        images = Product_Variant_Images.query.filter_by(
             product_id=product.id,
-            role="thumbnail"
-        ).order_by(Product_Variant_Images.sort_order.asc()).first()
+        ).order_by(Product_Variant_Images.sort_order.asc()).all()
+        
+        thumbnail = next((img for img in images if img.role == "thumbnail"), None)
 
         response.append({
             "id": product.id,
@@ -178,6 +183,11 @@ def get_products():
             "price": float(product.price),
             "category": product.category,
             "thumbnail": thumbnail.image_url if thumbnail else None,
+            "images": [
+                {   "image_url": img.image_url,
+                    "role": img.role,
+                    "aspect_ratio": img.aspect_ratio
+                } for img in images ],
 
             # ⭐ new frontend flag
             "is_out_of_stock": total_stock <= 0
@@ -232,7 +242,8 @@ def product_page(product_id):
                 "images": [
                     {
                         "image_url": img.image_url,
-                        "role": img.role
+                        "role": img.role,
+                        "aspect_ratio": img.aspect_ratio
                     }
                     for img in images
                 ],
@@ -300,7 +311,8 @@ def get_product_images(product_id):
             "color": img.color,
             "image_url": img.image_url,
             "role": img.role,
-            "sort_order": img.sort_order
+            "sort_order": img.sort_order,
+            "aspect_ratio": img.aspect_ratio
         } for img in images
     ])
     
@@ -728,6 +740,7 @@ def get_cart():
             "quantity": item.quantity,
             "price": item.price_at_time,
             "subtotal": item.quantity * item.price_at_time,
+            "thumbnail": Product_Variant_Images.query.filter_by(product_id=item.product_id, role="thumbnail").order_by(Product_Variant_Images.sort_order.asc()).first().image_url,
             "is_free_item": item.is_free_item
         }
         total += product_info["subtotal"]

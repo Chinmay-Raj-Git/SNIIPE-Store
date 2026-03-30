@@ -40,8 +40,10 @@ class Product_Variant_Images(db.Model):
 
     role = db.Column(db.String(20), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
+    aspect_ratio = db.Column(db.String(10), nullable=True)
 
     product = db.relationship('Product', backref='variant_images')
+    
 
 
 # -----------------------------
