@@ -35,7 +35,7 @@ def create_app():
         resources={r"/*": {"origins": [
             "https://sniipe.in",
             "https://www.sniipe.in",
-            "https://snipe-store.vercel.app",
+            "https://sniipe-store.vercel.app",
             "http://localhost:5173"
         ]}},
         supports_credentials=True,
