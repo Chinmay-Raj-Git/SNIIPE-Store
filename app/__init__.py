@@ -30,12 +30,25 @@ def create_app():
 
     from flask_cors import CORS
 
-    CORS(app, origins=[
-        "https://sniipe.in",
-        "https://www.sniipe.in",
-        "https://snipe-store.vercel.app",
-        "http://localhost:5173",         # local dev
-    ], supports_credentials=True)
+    CORS(
+        app,
+        resources={r"/*": {"origins": [
+            "https://sniipe.in",
+            "https://www.sniipe.in",
+            "https://snipe-store.vercel.app",
+            "http://localhost:5173"
+        ]}},
+        supports_credentials=True,
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"]
+    )
+    
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        return response
 
 
     db.init_app(app)
