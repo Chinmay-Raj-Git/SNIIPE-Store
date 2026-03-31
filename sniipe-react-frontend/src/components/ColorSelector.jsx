@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeContext'
 const COLOR_HEX = {
   black: '#1c1c1c', white: '#f5f5f5', red: '#d63031',
   blue: '#0984e3', navy: '#1a365d', green: '#ADDE7A',
-  forest_green: '#228C32',
+  forest_green: '#224C32',
   yellow: '#fdcb6e', orange: '#e17055', purple: '#a29bfe',
   pink: '#fd79a8', grey: '#636e72', gray: '#636e72',
   brown: '#c19a6b', dark_brown: '#8B4513', beige: '#d6cbb5', cream: '#fffdd0',
@@ -18,7 +18,7 @@ const COLOR_HEX = {
 }
 
 function getColorHex(name) {
-  return COLOR_HEX[name?.toLowerCase()] ?? '#888'
+  return COLOR_HEX[name.replace(" ", "_")?.toLowerCase()] ?? '#888'
 }
 
 /**
