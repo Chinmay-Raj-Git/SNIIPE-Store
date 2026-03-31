@@ -303,7 +303,9 @@ export const themes = {
 // Change this line to switch themes
 // ───────────────────────────────────────────────────────────
 
-export const theme = themes.cottonRose
+// change VITE_THEME_KEY in .env to switch themes without editing code
+const envThemeKey = import.meta.env.VITE_THEME_KEY
+export const theme = themes[envThemeKey] || themes.default
 
 
 export default theme
