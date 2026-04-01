@@ -32,17 +32,17 @@ export default function Footer() {
             Premium streetwear focused on quality fabric, clean silhouettes, and limited drops.
           </p>
           <div className="flex items-center gap-4 mt-6">
-            <a href="https://instagram.com" target="_blank" rel="noreferrer"
+            <a href="https://instagram.com/sniipe.in" target="_blank" rel="noreferrer"
               style={{ color: theme.textSecondary }}
               className="hover:text-white transition-colors text-lg"
             >
               <i className="fa-brands fa-instagram" />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noreferrer"
+            <a href="https://wa.me/+917207701175" target="_blank" rel="noreferrer"
               style={{ color: theme.textSecondary }}
               className="hover:text-white transition-colors text-lg"
             >
-              <i className="fa-brands fa-x-twitter" />
+              <i className="fa-brands fa-whatsapp" />
             </a>
           </div>
         </div>

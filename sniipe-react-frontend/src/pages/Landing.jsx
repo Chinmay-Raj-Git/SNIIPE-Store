@@ -75,12 +75,19 @@ function PromoBanner({ theme }) {
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10" style={{ backgroundColor: theme.primary }} />
         <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full opacity-10" style={{ backgroundColor: theme.primary }} />
         <div className="relative z-10">
-          <p className="text-xs font-semibold tracking-[0.4em] uppercase mb-4" style={{ color: theme.primary }}>Limited Time Offer</p>
-          <h2 className="font-heading text-4xl md:text-5xl font-black mb-4" style={{ color: theme.textPrimary }}>Buy 1 Get 1 FREE</h2>
-          <p className="text-base mb-8 max-w-md mx-auto" style={{ color: theme.textSecondary }}>Purchase any hoodie at ₹2499 and get a second one absolutely free. Limited stock.</p>
+          <p className="text-xs font-semibold tracking-[0.4em] uppercase mb-4" style={{ color: theme.primary }}>
+            NEW ARRIVALS ALERT
+            </p>
+          <h2 className="font-heading text-4xl md:text-5xl font-black mb-4" style={{ color: theme.textPrimary }}>
+            Introducing KURTIS Collection
+            </h2>
+          <p className="text-base mb-8 max-w-md mx-auto" style={{ color: theme.textSecondary }}>
+            Crafted with love, built for women who carry strength with softness.
+            </p>
           <Link to="/collections" className="inline-flex items-center gap-3 px-10 py-3.5 rounded-xl text-base font-bold transition-all hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: '#fff' }}>
-            Shop the Offer <i className="fa-solid fa-arrow-right" />
+            View Collection
+            <i className="fa-solid fa-arrow-right" />
           </Link>
         </div>
       </div>

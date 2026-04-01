@@ -1,11 +1,11 @@
 import { useTheme } from '../theme/ThemeContext'
 
 const ANNOUNCEMENTS = [
-  '🎉  BACK IN STOCK: Oversized Tees at ₹499 only!',
-  '💎  FREE SHIPPING on all orders — No delivery charges.',
-  '🔥  Buy 1 Hoodie at ₹2499 & Get 1 FREE',
-  '⚡  Limited drops — once it\'s gone, it\'s gone!',
-  '✨  New arrivals every Friday — Follow @sniipe',
+  'BACK IN STOCK: Oversized Tees at ₹499 only!',
+  'FREE SHIPPING on all orders — No delivery charges.',
+  'New arrivals: KURTIS Collection — Shop now!',
+  'Follow us on Instagram @sniipe.in for exclusive drops and behind-the-scenes!',
+  ''
 ]
 
 /**

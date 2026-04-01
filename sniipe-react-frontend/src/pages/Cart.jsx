@@ -51,7 +51,7 @@ export default function Cart() {
               ))}
             </div>
 
-            <Link to="/home" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '16px', fontSize: '13px', color: theme.textMuted, textDecoration: 'none' }}
+            <Link to="/collections" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '16px', fontSize: '13px', color: theme.textMuted, textDecoration: 'none' }}
               onMouseEnter={e => e.currentTarget.style.color = theme.primary}
               onMouseLeave={e => e.currentTarget.style.color = theme.textMuted}
             >

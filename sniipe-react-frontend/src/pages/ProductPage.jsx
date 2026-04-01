@@ -265,7 +265,7 @@ export default function ProductPage() {
                 {resolvedVariant.color && resolvedVariant.size && <span>·</span>}
                 {resolvedVariant.size && <span>{resolvedVariant.size}</span>}
                 <span>·</span>
-                <span>{stock > 0 ? `${stock} in stock` : 'Out of stock'}</span>
+                <span>{stock > 0 ? `In stock` : 'Out of stock'}</span>
               </div>
             )}
 
