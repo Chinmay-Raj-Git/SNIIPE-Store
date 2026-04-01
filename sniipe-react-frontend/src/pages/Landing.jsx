@@ -51,7 +51,7 @@ function HeroSection({ theme }) {
             </p>
           </div>
           <div className="animate-slide-up" style={{ animationDelay: '0.7s', opacity: 0 }}>
-            <Link to="/home" className="hero-cta inline-flex items-center gap-3 px-12 py-4 rounded-xl text-lg font-semibold shadow-2xl transition-all duration-300 hover:scale-105 group"
+            <Link to="/collections" className="hero-cta inline-flex items-center gap-3 px-12 py-4 rounded-xl text-lg font-semibold shadow-2xl transition-all duration-300 hover:scale-105 group"
               style={{ background: `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: '#ffffff' }}>
               Explore Store
               <i className="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform" />
@@ -78,7 +78,7 @@ function PromoBanner({ theme }) {
           <p className="text-xs font-semibold tracking-[0.4em] uppercase mb-4" style={{ color: theme.primary }}>Limited Time Offer</p>
           <h2 className="font-heading text-4xl md:text-5xl font-black mb-4" style={{ color: theme.textPrimary }}>Buy 1 Get 1 FREE</h2>
           <p className="text-base mb-8 max-w-md mx-auto" style={{ color: theme.textSecondary }}>Purchase any hoodie at ₹2499 and get a second one absolutely free. Limited stock.</p>
-          <Link to="/home" className="inline-flex items-center gap-3 px-10 py-3.5 rounded-xl text-base font-bold transition-all hover:scale-105"
+          <Link to="/collections" className="inline-flex items-center gap-3 px-10 py-3.5 rounded-xl text-base font-bold transition-all hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: '#fff' }}>
             Shop the Offer <i className="fa-solid fa-arrow-right" />
           </Link>
@@ -103,14 +103,14 @@ function FeaturedProducts({ theme }) {
     <section className="max-w-7xl mx-auto pb-24 px-6">
       <p className="text-xs font-semibold tracking-[0.4em] uppercase text-center mb-3" style={{ color: theme.primary }}>Collection</p>
       <h2 className="font-heading text-5xl font-bold text-center mb-12" style={{ color: theme.textPrimary }}>Featured Drops</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
           : products.map((p) => <ProductCard key={p.id} product={p} />)
         }
       </div>
       <div className="text-center mt-12">
-        <Link to="/home"
+        <Link to="/collections"
           className="inline-flex items-center gap-2 px-10 py-3 rounded-xl text-sm font-semibold border transition-all hover:scale-105"
           style={{ borderColor: theme.primary, color: theme.primary }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.primary; e.currentTarget.style.color = '#fff' }}

@@ -76,7 +76,7 @@ export default function CollectionProducts() {
           }}>
             <Link
               to="/"
-              style={{ color: theme.textMuted, textDecoration: 'none' }}
+              style={{ color: theme.textMuted, textDecoration: 'none', display: 'flex', alignItems: 'center' }}
               onMouseEnter={(e) => (e.target.style.color = theme.primary)}
               onMouseLeave={(e) => (e.target.style.color = theme.textMuted)}
             >
@@ -85,7 +85,7 @@ export default function CollectionProducts() {
             <span>/</span>
             <Link
               to="/collections"
-              style={{ color: theme.textMuted, textDecoration: 'none' }}
+              style={{ color: theme.textMuted, textDecoration: 'none', display: 'flex', alignItems: 'center' }}
               onMouseEnter={(e) => (e.target.style.color = theme.primary)}
               onMouseLeave={(e) => (e.target.style.color = theme.textMuted)}
             >

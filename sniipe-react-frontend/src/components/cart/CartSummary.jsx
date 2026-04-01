@@ -57,8 +57,13 @@ export default function CartSummary({
         <SummaryRow label="Total" value={formatINR(total)} large theme={theme} valueColor={theme.primary} />
       </div>
 
-      {/* Extra slot (CouponInput etc.) */}
-      {extra && <div style={{ marginBottom: '16px' }}>{extra}</div>}
+      {/* Extra slot (CouponInput etc.) — with divider below */}
+      {extra && (
+        <div style={{ marginBottom: '0' }}>
+          {extra}
+          <div style={{ borderTop: `1px solid ${theme.border}`, margin: '16px 0' }} />
+        </div>
+      )}
 
       {/* CTA */}
       <button

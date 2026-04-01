@@ -208,7 +208,7 @@ export default function Collections() {
       <div className="collections-header" style={{
         borderBottom: `1px solid ${theme.border}`,
         backgroundColor: theme.surface,
-        padding: '40px 24px 36px',
+        padding: '24px 16px 24px',
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <p style={{
@@ -237,12 +237,12 @@ export default function Collections() {
       </div>
 
       {/* Grid */}
-      <div className="collections-wrap" style={{ maxWidth: '1400px', margin: '0 auto', padding: '48px 24px 80px' }}>
+      <div className="collections-wrap" style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 16px 80px' }}>
         {loading ? (
           /* Skeleton */
           <div className="coll-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: '24px',
           }}>
             {COLLECTION_DEFS.map((def) => (
@@ -261,7 +261,7 @@ export default function Collections() {
         ) : (
           <div className="coll-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: '24px',
           }}>
             {COLLECTION_DEFS.map((def) => {

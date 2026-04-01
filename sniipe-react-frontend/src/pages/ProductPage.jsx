@@ -14,43 +14,31 @@ import { getStockLevel } from '../utils/variantUtils'
 import { formatINR } from '../utils/priceUtils'
 import { fetchProducts, normalizeProducts } from '../api/productApi'
 
-// ── Structured description parser (matches Flask product.html logic) ─────────
 function parseDescription(raw) {
   if (!raw) return {}
   const upper = raw.toUpperCase()
-
   const descStart = upper.indexOf('DESCRIPTION')
   const featStart = upper.indexOf('FEATURES')
   const careStart = upper.indexOf('CARE')
-
   const section = (start, keyword, nextStart) => {
     if (start === -1) return ''
     return raw.slice(start + keyword.length, nextStart !== -1 ? nextStart : undefined).trim()
   }
-
   const descText = section(descStart, 'DESCRIPTION', featStart !== -1 ? featStart : careStart)
   const featText = section(featStart, 'FEATURES', careStart)
   const careText = section(careStart, 'CARE', -1)
-
   return { descText, featText, careText }
 }
 
-// ── Collapsible accordion ────────────────────────────────────
 function Accordion({ title, children, defaultOpen = false, theme }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div style={{ border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '10px' }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer',
-          backgroundColor: theme.surface,
-        }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', backgroundColor: theme.surface }}
       >
-        <span style={{ fontSize: '13px', fontWeight: 700, color: theme.textPrimary, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-          {title}
-        </span>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: theme.textPrimary, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</span>
         <i className="fa-solid fa-angle-down" style={{ color: theme.primary, fontSize: '12px', transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.25s ease' }} />
       </button>
       {open && (
@@ -62,7 +50,6 @@ function Accordion({ title, children, defaultOpen = false, theme }) {
   )
 }
 
-// ── Quantity stepper ─────────────────────────────────────────
 function QuantityInput({ value, onChange, max, theme }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0', border: `1.5px solid ${theme.border}`, borderRadius: '10px', overflow: 'hidden', width: 'fit-content' }}>
@@ -91,7 +78,6 @@ function QuantityInput({ value, onChange, max, theme }) {
   )
 }
 
-// ── Similar products section ─────────────────────────────────
 function SimilarProducts({ category, currentId, theme }) {
   const [similar, setSimilar] = useState([])
   const [loading, setLoading] = useState(true)
@@ -111,7 +97,7 @@ function SimilarProducts({ category, currentId, theme }) {
   if (!loading && similar.length === 0) return null
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 24px 80px' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px 80px' }}>
       <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '56px' }}>
         <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.35em', textTransform: 'uppercase', color: theme.primary, marginBottom: '8px' }}>
           You May Also Like
@@ -119,7 +105,8 @@ function SimilarProducts({ category, currentId, theme }) {
         <h2 className="font-heading" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 900, color: theme.textPrimary, marginBottom: '32px' }}>
           Similar Products
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '24px' }}>
+        {/* 2-col on mobile, 4-col on desktop */}
+        <div className="similar-grid">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
             : similar.map((p) => <ProductCard key={p.id} product={p} />)
@@ -150,9 +137,7 @@ export default function ProductPage() {
   const [addedFeedback, setAddedFeedback] = useState(false)
   const [showGoToCart, setShowGoToCart] = useState(false)
   const [cartError, setCartError] = useState('')
-  const [sizeChartOpen, setSizeChartOpen] = useState(false)
 
-  // Reset quantity when variant changes
   useEffect(() => { setQuantity(1) }, [resolvedVariant])
 
   if (loading) return <LoadingState theme={theme} />
@@ -181,7 +166,6 @@ export default function ProductPage() {
       setAddedFeedback(true)
       setShowGoToCart(true)
       setTimeout(() => setAddedFeedback(false), 2500)
-      // Go-to-cart button visible for 8 seconds
       setTimeout(() => setShowGoToCart(false), 8000)
     } catch (e) {
       setCartError(e?.response?.data?.error ?? 'Failed to add to cart. Please try again.')
@@ -193,30 +177,32 @@ export default function ProductPage() {
   const ctaDisabled = stockLevel === 'OUT_OF_STOCK' || addingToCart
 
   return (
-    <div style={{ backgroundColor: theme.background, minHeight: '100vh' }}>
+    <div style={{ backgroundColor: theme.background, minHeight: '100vh', paddingBottom: '80px' }}>
 
-      {/* Breadcrumb */}
-      <div className="pp-breadcrumb" style={{ borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.surface, padding: '12px 24px' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: theme.textMuted }}>
-          <Link to="/" style={{ color: theme.textMuted, textDecoration: 'none' }} onMouseEnter={(e) => e.target.style.color = theme.primary} onMouseLeave={(e) => e.target.style.color = theme.textMuted}>Home</Link>
-          <span>/</span>
-          <Link to="/home" style={{ color: theme.textMuted, textDecoration: 'none' }} onMouseEnter={(e) => e.target.style.color = theme.primary} onMouseLeave={(e) => e.target.style.color = theme.textMuted}>Shop</Link>
-          <span>/</span>
-          {product.category && <><span>{product.category}</span><span>/</span></>}
-          <span style={{ color: theme.textPrimary, fontWeight: 600 }}>{product.name}</span>
+      {/* Breadcrumb — responsive wrapping */}
+      <div className="pp-breadcrumb" style={{ borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.surface, padding: '12px 16px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', fontSize: '12px', color: theme.textMuted }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', rowGap: '2px' }}>
+            <Link to="/" style={{ color: theme.textMuted, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }} onMouseEnter={(e) => e.target.style.color = theme.primary} onMouseLeave={(e) => e.target.style.color = theme.textMuted}>Home</Link>
+            <span>/</span>
+            <Link to="/home" style={{ color: theme.textMuted, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }} onMouseEnter={(e) => e.target.style.color = theme.primary} onMouseLeave={(e) => e.target.style.color = theme.textMuted}>Shop</Link>
+            <span>/</span>
+            {product.category && <><span style={{ whiteSpace: 'nowrap' }}>{product.category}</span><span>/</span></>}
+            <span style={{ color: theme.textPrimary, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{product.name}</span>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="pp-wrap" style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 24px 60px' }}>
-        <div className="pp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '56px', alignItems: 'start' }}>
+      <div className="pp-wrap" style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 16px 60px' }}>
+        <div className="pp-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px', alignItems: 'start' }}>
 
-          {/* ── LEFT: Gallery ── */}
+          {/* Gallery */}
           <div>
             <ProductGallery images={activeImages} activeIndex={activeImageIndex} onIndexChange={setActiveImageIndex} productName={product.name} />
           </div>
 
-          {/* ── RIGHT: Info panel ── */}
+          {/* Info panel */}
           <div className="pp-sticky" style={{ position: 'sticky', top: '120px' }}>
 
             {product.category && (
@@ -225,7 +211,7 @@ export default function ProductPage() {
               </span>
             )}
 
-            <h1 className="font-heading" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: theme.textPrimary, lineHeight: 1.1, marginBottom: '16px' }}>
+            <h1 className="font-heading" style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, color: theme.textPrimary, lineHeight: 1.1, marginBottom: '16px' }}>
               {product.name}
             </h1>
 
@@ -236,7 +222,6 @@ export default function ProductPage() {
               <StockBadge stock={stock} size="md" showCount />
             </div>
 
-            {/* Description — structured if possible, else raw */}
             {product.description && (
               <div style={{ marginBottom: '32px', paddingBottom: '32px', borderBottom: `1px solid ${theme.border}` }}>
                 {hasStructuredDesc ? (
@@ -252,7 +237,7 @@ export default function ProductPage() {
                       </Accordion>
                     )}
                     {parsed.careText && (
-                      <Accordion title="Care &amp; Instructions" theme={theme}>
+                      <Accordion title="Care & Instructions" theme={theme}>
                         <p style={{ fontSize: '14px', lineHeight: 1.8, color: theme.textSecondary, whiteSpace: 'pre-line' }}>{parsed.careText}</p>
                       </Accordion>
                     )}
@@ -273,35 +258,6 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Size Chart accordion
-            <div style={{ marginBottom: '24px' }}>
-              <Accordion title="Size Chart" theme={theme}>
-                <table style={{ width: '100%', fontSize: '12px', color: theme.textSecondary, borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
-                      {['Size', 'Chest (in)', 'Length (in)', 'Shoulder (in)'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '6px 8px', color: theme.textPrimary, fontWeight: 700 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[['S','36–38','27','16'],['M','38–40','28','17'],['L','40–42','29','18'],['XL','42–44','30','18.5'],['XXL','44–46','31','19']].map(([s,c,l,sh]) => (
-                      <tr key={s} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                        <td style={{ padding: '6px 8px', fontWeight: 700, color: theme.primary }}>{s}</td>
-                        <td style={{ padding: '6px 8px' }}>{c}</td>
-                        <td style={{ padding: '6px 8px' }}>{l}</td>
-                        <td style={{ padding: '6px 8px' }}>{sh}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p style={{ marginTop: '10px', fontSize: '11px', color: theme.textMuted }}>
-                  All measurements are in inches.
-                </p>
-              </Accordion>
-            </div> */}
-
-            {/* Resolved variant info */}
             {resolvedVariant && (
               <div style={{ fontSize: '12px', color: theme.textMuted, backgroundColor: theme.surface, border: `1px solid ${theme.border}`, borderRadius: '8px', padding: '10px 14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <i className="fa-solid fa-circle-info" style={{ color: theme.iconColor }} />
@@ -313,7 +269,7 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Quantity selector */}
+            {/* Quantity */}
             {stockLevel !== 'OUT_OF_STOCK' && resolvedVariant && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                 <span style={{ fontSize: '13px', color: theme.textSecondary, fontWeight: 600 }}>Qty:</span>
@@ -326,45 +282,45 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Cart error */}
             {cartError && (
               <div style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '8px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <i className="fa-solid fa-circle-exclamation" /> {cartError}
               </div>
             )}
 
-            {/* Add to Cart button */}
-            {addedFeedback ? (
-              <div style={{ width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '12px' }}>
-                <i className="fa-solid fa-check" /> Added to Cart!
-              </div>
-            ) : (
-              <button
-                onClick={handleAddToCart}
-                disabled={ctaDisabled}
-                style={{ width: '100%', padding: '16px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: ctaDisabled ? 'not-allowed' : 'pointer', border: 'none', transition: 'all 0.25s ease', background: ctaDisabled ? theme.surfaceHover : `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: ctaDisabled ? theme.textMuted : '#ffffff', boxShadow: !ctaDisabled ? `0 8px 24px ${theme.primary}44` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}
-                onMouseEnter={(e) => { if (!ctaDisabled) e.currentTarget.style.transform = 'translateY(-1px)' }}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                {addingToCart
-                  ? <><BtnSpinner /> Adding…</>
-                  : <><i className="fa-solid fa-bag-shopping" />{stockLevel === 'OUT_OF_STOCK' ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Sign In to Add'}</>
-                }
-              </button>
-            )}
+            {/* Add to Cart — hidden on mobile (sticky bar handles it), visible on desktop */}
+            <div className="pp-desktop-cta">
+              {addedFeedback ? (
+                <div style={{ width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <i className="fa-solid fa-check" /> Added to Cart!
+                </div>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={ctaDisabled}
+                  style={{ width: '100%', padding: '16px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: ctaDisabled ? 'not-allowed' : 'pointer', border: 'none', transition: 'all 0.25s ease', background: ctaDisabled ? theme.surfaceHover : `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: ctaDisabled ? theme.textMuted : '#ffffff', boxShadow: !ctaDisabled ? `0 8px 24px ${theme.primary}44` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}
+                  onMouseEnter={(e) => { if (!ctaDisabled) e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {addingToCart
+                    ? <><BtnSpinner /> Adding…</>
+                    : <><i className="fa-solid fa-bag-shopping" />{stockLevel === 'OUT_OF_STOCK' ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Sign In to Add'}</>
+                  }
+                </button>
+              )}
 
-            {/* Temporary "Go to Cart" button */}
-            {showGoToCart && (
-              <Link
-                to="/cart"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '13px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, textDecoration: 'none', border: `1.5px solid ${theme.primary}`, color: theme.primary, backgroundColor: theme.primaryMuted, transition: 'all 0.2s', marginBottom: '12px', animation: 'fade-in-reveal 0.4s ease forwards' }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = theme.primary; e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = theme.primaryMuted; e.currentTarget.style.color = theme.primary }}
-              >
-                <i className="fa-solid fa-bag-shopping" />
-                Go to Cart
-              </Link>
-            )}
+              {showGoToCart && (
+                <Link
+                  to="/cart"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '13px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, textDecoration: 'none', border: `1.5px solid ${theme.primary}`, color: theme.primary, backgroundColor: theme.primaryMuted, transition: 'all 0.2s', marginBottom: '12px' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = theme.primary; e.currentTarget.style.color = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = theme.primaryMuted; e.currentTarget.style.color = theme.primary }}
+                >
+                  <i className="fa-solid fa-bag-shopping" />
+                  Go to Cart
+                </Link>
+              )}
+            </div>
 
             {/* Trust badges */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '20px', flexWrap: 'wrap' }}>
@@ -381,6 +337,42 @@ export default function ProductPage() {
 
       {/* Similar products */}
       <SimilarProducts category={product.category} currentId={id} theme={theme} />
+
+      {/* ── Mobile sticky add-to-cart bar ── */}
+      <div className="pp-sticky-bar" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        backgroundColor: theme.navBg,
+        borderTop: `1px solid ${theme.border}`,
+        padding: '12px 16px',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        display: 'flex', alignItems: 'center', gap: '12px',
+        zIndex: 40,
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}>
+        <div style={{ flexShrink: 0 }}>
+          <p style={{ fontSize: '11px', color: theme.textMuted, margin: 0, lineHeight: 1 }}>Price</p>
+          <p style={{ fontSize: '18px', fontWeight: 800, color: theme.primary, margin: 0 }}>{formatINR(product.price)}</p>
+        </div>
+        {addedFeedback ? (
+          <div style={{ flex: 1, padding: '14px', borderRadius: '12px', backgroundColor: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <i className="fa-solid fa-check" /> Added to Cart!
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            disabled={ctaDisabled}
+            style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', cursor: ctaDisabled ? 'not-allowed' : 'pointer', border: 'none', background: ctaDisabled ? theme.surfaceHover : `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: ctaDisabled ? theme.textMuted : '#ffffff', boxShadow: !ctaDisabled ? `0 4px 16px ${theme.primary}44` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            {addingToCart
+              ? <><BtnSpinner /> Adding…</>
+              : <><i className="fa-solid fa-bag-shopping" />{stockLevel === 'OUT_OF_STOCK' ? 'Out of Stock' : isAuthenticated ? 'Add to Cart' : 'Sign In to Add'}</>
+            }
+          </button>
+        )}
+      </div>
+
     </div>
   )
 }
@@ -392,9 +384,9 @@ function BtnSpinner() {
 function LoadingState({ theme }) {
   return (
     <div style={{ backgroundColor: theme.background, minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '56px' }}>
-          <div style={{ height: '600px', borderRadius: '16px', backgroundColor: theme.surface, animation: 'pulse 1.8s ease-in-out infinite' }} />
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+          <div style={{ height: '500px', borderRadius: '16px', backgroundColor: theme.surface, animation: 'pulse 1.8s ease-in-out infinite' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {[60, 40, 80, 100, 60].map((w, i) => (
               <div key={i} style={{ height: i === 0 ? '40px' : '20px', width: `${w}%`, borderRadius: '6px', backgroundColor: theme.surface, animation: 'pulse 1.8s ease-in-out infinite' }} />

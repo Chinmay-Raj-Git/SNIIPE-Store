@@ -38,7 +38,7 @@ export default function Login() {
 
   return (
     <div style={{
-      minHeight: '100vh', backgroundColor: theme.background,
+      minHeight: '80vh', backgroundColor: theme.background,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '40px 16px',
     }}>
@@ -46,12 +46,12 @@ export default function Login() {
 
         {/* Brand header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <Link to="/">
+          {/* <Link to="/">
             <img
               src={theme.themeType === 'dark' ? birdLogo : birdLogoD}
               alt="SNIIPE" style={{ height: '56px', marginBottom: '16px' }}
             />
-          </Link>
+          </Link> */}
           <h1 className="font-heading" style={{
             fontSize: '2.2rem', fontWeight: 900, color: theme.textPrimary,
             letterSpacing: '-0.01em', marginBottom: '6px',

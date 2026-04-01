@@ -259,7 +259,7 @@ img, video { max-width: 100%; }
     grid-template-columns: 1fr !important;
     gap: 14px !important;
   }
-  .coll-card { aspect-ratio: 3 / 2 !important; }
+  .coll-card { aspect-ratio: 3 / 4 !important; }
 }
 @media (min-width: 480px) and (max-width: 640px) {
   .coll-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -279,4 +279,134 @@ img, video { max-width: 100%; }
 /* ── Footer grid ── */
 @media (max-width: 640px) {
   .footer-inner { padding: 36px 20px 24px !important; gap: 24px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE & STICKY BAR OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Similar products: 2-col on mobile */
+.similar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 640px) {
+  .similar-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+@media (min-width: 900px) {
+  .similar-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ── Sticky bars: show only on mobile ── */
+.pp-sticky-bar,
+.cart-sticky-bar,
+.checkout-sticky-bar {
+  display: flex; /* show on mobile by default */
+}
+@media (min-width: 1024px) {
+  .pp-sticky-bar,
+  .cart-sticky-bar,
+  .checkout-sticky-bar {
+    display: none !important;
+  }
+}
+
+/* ── Desktop CTA: hide on mobile (sticky bar replaces it) ── */
+.pp-desktop-cta {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .pp-desktop-cta {
+    display: block;
+  }
+}
+
+/* ── Cart summary: desktop sidebar only on larger screens ── */
+.cart-summary-desktop,
+.checkout-summary-desktop {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .cart-summary-desktop,
+  .checkout-summary-desktop {
+    display: block;
+  }
+}
+
+/* ── Collections grid: full-width single card on very small screens ── */
+@media (max-width: 400px) {
+  .coll-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Product page: stack on mobile ── */
+.pp-grid {
+  grid-template-columns: 1fr !important;
+}
+@media (min-width: 768px) {
+  .pp-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+}
+
+/* ── Cart grid: single column on mobile ── */
+.cart-grid {
+  grid-template-columns: 1fr !important;
+}
+@media (min-width: 640px) {
+  .cart-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+}
+
+/* ── Color pills — always circular ── */
+.color-pill-swatch {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+}
+
+/* ── Cart item: prevent overflow ── */
+.cart-wrap .pc-name,
+.cart-item-name {
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+/* ── Breadcrumb: no overflow on mobile ── */
+.pp-breadcrumb a,
+.pp-breadcrumb span {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── ProductCard image height: slightly smaller on mobile ── */
+@media (max-width: 640px) {
+  .pc-image {
+    height: 240px !important;
+  }
+  .pc-info {
+    padding: 12px 14px 16px !important;
+  }
+  .pc-name {
+    font-size: 13px !important;
+  }
+  .pc-price {
+    font-size: 15px !important;
+  }
 }

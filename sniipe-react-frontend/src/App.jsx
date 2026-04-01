@@ -47,15 +47,15 @@ export default function App() {
             <BrowserRouter>
               <Routes>
 
-                {/* ── Standalone auth pages (no Navbar/Footer) ── */}
-                <Route path="/login"  element={<Login />}  />
-                <Route path="/signup" element={<Signup />} />
-
-                {/* OAuth callback — Supabase redirects here after Google login */}
+                {/* OAuth callback — standalone */}
                 <Route path="/auth/callback" element={<OAuthCallback />} />
 
                 {/* ── Main site (Navbar + AnnouncementBar + Footer) ── */}
                 <Route element={<MainLayout />}>
+
+                  {/* Auth pages — now include Navbar/Footer for consistency */}
+                  <Route path="/login"  element={<Login />}  />
+                  <Route path="/signup" element={<Signup />} />
 
                   {/* Public */}
                   <Route path="/"            element={<Landing />}     />

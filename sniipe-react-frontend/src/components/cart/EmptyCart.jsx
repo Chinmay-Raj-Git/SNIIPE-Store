@@ -32,7 +32,7 @@ export default function EmptyCart() {
       <p style={{ color: theme.textSecondary, fontSize: '15px', marginBottom: '36px', maxWidth: '380px' }}>
         Explore our latest drops and find something worth wearing.
       </p>
-      <Link to="/home" style={{
+      <Link to="/collections" style={{
         display: 'inline-flex', alignItems: 'center', gap: '10px',
         padding: '14px 32px', borderRadius: '12px', fontWeight: 700,
         fontSize: '14px', letterSpacing: '0.05em', textTransform: 'uppercase',

@@ -117,11 +117,9 @@ export default function Footer() {
       >
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <p>© {new Date().getFullYear()} SNIIPE. All rights reserved.</p>
-          <div className="flex items-center gap-2 opacity-60">
-            <i className="fa-brands fa-cc-visa text-lg" />
-            <i className="fa-brands fa-cc-mastercard text-lg" />
-            <i className="fa-brands fa-cc-amex text-lg" />
-            <span className="ml-1">Secure payments</span>
+          <div className="flex items-center gap-2 opacity-70">
+            <i className="fa-solid fa-lock text-sm" />
+            <span>Secured by Razorpay</span>
           </div>
         </div>
       </div>

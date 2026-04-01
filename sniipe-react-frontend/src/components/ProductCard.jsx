@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { colorNameToHex } from '../utils/colorMap'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../theme/ThemeContext'
 import StockBadge from './StockBadge'
@@ -273,21 +274,3 @@ export default function ProductCard({ product }) {
   )
 }
 
-/**
- * Best-effort map of common color names to hex for color dot display.
- * Falls back to a neutral gray for unknown names.
- */
-function colorNameToHex(name) {
-  const map = {
-    black: '#1a1a1a', white: '#f5f5f5', red: '#e53e3e',
-    blue: '#3182ce', navy: '#1a365d', green: '#38a169',
-    yellow: '#d69e2e', orange: '#dd6b20', purple: '#805ad5',
-    pink: '#d53f8c', grey: '#718096', gray: '#718096',
-    brown: '#744210', beige: '#d6cbb5', cream: '#fffdd0',
-    maroon: '#7b2d00', teal: '#2c7a7b', olive: '#6b6b2a',
-    khaki: '#c8b97a', charcoal: '#2d3748', coral: '#fc8181',
-    mint: '#68d391', lavender: '#b794f4', tan: '#c49a6c',
-    camel: '#c19a6b', ivory: '#fffff0',
-  }
-  return map[name?.toLowerCase()] ?? '#888888'
-}

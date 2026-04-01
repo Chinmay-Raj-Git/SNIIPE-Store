@@ -36,7 +36,7 @@ export default function Signup() {
 
   return (
     <div style={{
-      minHeight: '100vh', backgroundColor: theme.background,
+      minHeight: '80vh', backgroundColor: theme.background,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '40px 16px',
     }}>
