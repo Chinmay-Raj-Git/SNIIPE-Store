@@ -151,7 +151,7 @@ export default function ProductGallery({ images, activeIndex = 0, onIndexChange,
 
       {/* Thumbnail strip */}
       {displayImages.length > 1 && (
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
           {displayImages.map((img, i) => (
             <button
               key={i}
