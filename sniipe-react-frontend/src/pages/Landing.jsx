@@ -4,7 +4,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { fetchProductsWithVariants, normalizeProducts } from '../api/productApi'
 import ProductCard from '../components/ProductCard'
 import { ProductCardSkeleton } from '../components/skeletons'
-import landingImg from '../assets/landing.png'
+import landingImg from '../assets/landing2.jpeg'
 
 // ── Why SNIIPE pillars ───────────────────────────────────────
 const WHY_ITEMS = [
