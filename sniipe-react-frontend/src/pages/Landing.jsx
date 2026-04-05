@@ -84,7 +84,7 @@ function PromoBanner({ theme }) {
           <p className="text-base mb-8 max-w-md mx-auto" style={{ color: theme.textSecondary }}>
             Crafted with love, built for women who carry strength with softness.
             </p>
-          <Link to="/collections" className="inline-flex items-center gap-3 px-10 py-3.5 rounded-xl text-base font-bold transition-all hover:scale-105"
+          <Link to="/collections/kurtis" className="inline-flex items-center gap-3 px-10 py-3.5 rounded-xl text-base font-bold transition-all hover:scale-105"
             style={{ background: `linear-gradient(135deg, ${theme.ctaGradientFrom}, ${theme.ctaGradientTo})`, color: '#fff' }}>
             View Collection
             <i className="fa-solid fa-arrow-right" />

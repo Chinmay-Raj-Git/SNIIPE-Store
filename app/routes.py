@@ -1805,117 +1805,117 @@ def apply_coupon():
 def index():
     return render_template("landing.html")
 
-# -----------------------------
-# USER AUTH PAGE RENDERING
-# -----------------------------
-@bp.route("/auth-test")
-def auth_test_page():
-    return render_template("auth_test.html")
+# # -----------------------------
+# # USER AUTH PAGE RENDERING
+# # -----------------------------
+# @bp.route("/auth-test")
+# def auth_test_page():
+#     return render_template("auth_test.html")
 
-# -----------------------------
-# VERIFICATION PAGE RENDERING
-# -----------------------------
-@bp.route("/verify-email")
-def verify_email_page():
-    return render_template("verify_email.html")
+# # -----------------------------
+# # VERIFICATION PAGE RENDERING
+# # -----------------------------
+# @bp.route("/verify-email")
+# def verify_email_page():
+#     return render_template("verify_email.html")
 
-@bp.route("/email-verified")
-def email_verified_page():
-    return render_template("email_verified.html")
+# @bp.route("/email-verified")
+# def email_verified_page():
+#     return render_template("email_verified.html")
 
-# -----------------------------
-# HOME PAGE RENDERING
-# -----------------------------
-@bp.route("/home")
-def home():
-    return render_template("home.html")
+# # -----------------------------
+# # HOME PAGE RENDERING
+# # -----------------------------
+# @bp.route("/home")
+# def home():
+#     return render_template("home.html")
 
-# -----------------------------
-# PROFILE PAGE RENDERING
-# -----------------------------
-@bp.route("/profile")
-def profile():
-    return render_template("profile.html")
+# # -----------------------------
+# # PROFILE PAGE RENDERING
+# # -----------------------------
+# @bp.route("/profile")
+# def profile():
+#     return render_template("profile.html")
 
-# -----------------------------
-# ORDER PAGE RENDERING
-# -----------------------------
-@bp.route("/order/<int:order_id>")
-def order_detail_page(order_id):
-    return render_template("order_detail.html", order_id=order_id)
+# # -----------------------------
+# # ORDER PAGE RENDERING
+# # -----------------------------
+# @bp.route("/order/<int:order_id>")
+# def order_detail_page(order_id):
+#     return render_template("order_detail.html", order_id=order_id)
 
-# -----------------------------
-# CART PAGE RENDERING
-# -----------------------------
-@bp.route("/cart-page")
-def cart_page():
-    return render_template("cart.html")
+# # -----------------------------
+# # CART PAGE RENDERING
+# # -----------------------------
+# @bp.route("/cart-page")
+# def cart_page():
+#     return render_template("cart.html")
 
-# -----------------------------
-# LOGIN PAGE RENDERING
-# -----------------------------
-@bp.route('/login-page')
-def login_page():
-    return render_template('login.html')
+# # -----------------------------
+# # LOGIN PAGE RENDERING
+# # -----------------------------
+# @bp.route('/login-page')
+# def login_page():
+#     return render_template('login.html')
 
-@bp.route('/login-page/<string:targetLocation>')
-def login_page_target(targetLocation):
-    return render_template('login.html', targetLocation=targetLocation)
+# @bp.route('/login-page/<string:targetLocation>')
+# def login_page_target(targetLocation):
+#     return render_template('login.html', targetLocation=targetLocation)
 
-# -----------------------------
-# REGISTER PAGE RENDERING
-# -----------------------------
-@bp.route("/register-page")
-def register_page():
-    return render_template("register.html")
+# # -----------------------------
+# # REGISTER PAGE RENDERING
+# # -----------------------------
+# @bp.route("/register-page")
+# def register_page():
+#     return render_template("register.html")
 
-# -----------------------------
-# CONTACT PAGE RENDERING
-# -----------------------------
-@bp.route("/contact")
-def contact_page():
-    return render_template("contact.html")
+# # -----------------------------
+# # CONTACT PAGE RENDERING
+# # -----------------------------
+# @bp.route("/contact")
+# def contact_page():
+#     return render_template("contact.html")
 
-# -----------------------------
-# SUPPORT PAGE RENDERING
-# -----------------------------
-@bp.route("/support")
-def support_page():
-    return render_template("support.html")
+# # -----------------------------
+# # SUPPORT PAGE RENDERING
+# # -----------------------------
+# @bp.route("/support")
+# def support_page():
+#     return render_template("support.html")
 
-# -----------------------------
-# FAQs PAGE RENDERING
-# -----------------------------
-@bp.route("/faq")
-def faq_page():
-    return render_template("faq.html")
+# # -----------------------------
+# # FAQs PAGE RENDERING
+# # -----------------------------
+# @bp.route("/faq")
+# def faq_page():
+#     return render_template("faq.html")
 
-# -----------------------------
-# FAQs PAGE RENDERING
-# -----------------------------
-@bp.route("/forgot-password-page")
-def forgot_page():
-    return render_template("forgot_password.html")
+# # -----------------------------
+# # FAQs PAGE RENDERING
+# # -----------------------------
+# @bp.route("/forgot-password-page")
+# def forgot_page():
+#     return render_template("forgot_password.html")
 
-# -----------------------------
-# POLICIES
-# -----------------------------
-@bp.route("/terms")
-def terms():
-    return render_template("policies/terms.html")
+# # -----------------------------
+# # POLICIES
+# # -----------------------------
+# @bp.route("/terms")
+# def terms():
+#     return render_template("policies/terms.html")
 
-@bp.route("/privacy")
-def privacy():
-    return render_template("policies/privacy.html")
+# @bp.route("/privacy")
+# def privacy():
+#     return render_template("policies/privacy.html")
 
-@bp.route("/refund")
-def refund():
-    return render_template("policies/refund.html")
+# @bp.route("/refund")
+# def refund():
+#     return render_template("policies/refund.html")
 
-@bp.route("/shipping")
-def shipping():
-    return render_template("policies/shipping.html")
+# @bp.route("/shipping")
+# def shipping():
+#     return render_template("policies/shipping.html")
 
-@bp.route("/cancellations")
-def cancellations():
-    return render_template("policies/cancellations.html")
+# @bp.route("/cancellations")
+# def cancellations():
+#     return render_template("policies/cancellations.html")
