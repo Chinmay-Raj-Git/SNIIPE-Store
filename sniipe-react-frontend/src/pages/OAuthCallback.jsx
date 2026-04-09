@@ -69,8 +69,8 @@ export default function OAuthCallback() {
         await fetchUser()
 
         // Redirect: use the location the user originally tried to visit,
-        // fall back to /home
-        const intended = location.state?.from?.pathname ?? '/home'
+        // fall back to /collections
+        const intended = location.state?.from?.pathname ?? '/collections'
         navigate(intended, { replace: true })
 
       } catch (err) {

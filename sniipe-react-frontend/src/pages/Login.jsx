@@ -17,7 +17,7 @@ export default function Login() {
 
   // Already logged in → redirect away
   if (isAuthenticated) {
-    const dest = location.state?.from?.pathname ?? '/home'
+    const dest = location.state?.from?.pathname ?? '/collections'
     navigate(dest, { replace: true })
     return null
   }
@@ -27,7 +27,7 @@ export default function Login() {
     setError('')
     try {
       await login(email, password)
-      const dest = location.state?.from?.pathname ?? '/home'
+      const dest = location.state?.from?.pathname ?? '/collections'
       navigate(dest, { replace: true })
     } catch (err) {
       setError(err?.response?.data?.error ?? 'Invalid credentials. Please try again.')
