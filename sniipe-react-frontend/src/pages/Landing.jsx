@@ -5,6 +5,7 @@ import { fetchProductsWithVariants, normalizeProducts } from '../api/productApi'
 import ProductCard from '../components/ProductCard'
 import { ProductCardSkeleton } from '../components/skeletons'
 import landingImg from '../assets/landing2.jpeg'
+import { FEATURED_CONFIG, groupFeaturedProducts } from '../config/featuredConfig'
 
 // ── Why SNIIPE pillars ───────────────────────────────────────
 const WHY_ITEMS = [
@@ -95,33 +96,126 @@ function PromoBanner({ theme }) {
   )
 }
 
+/**
+ * CategoryHeading — visually distinct separator between product groups.
+ * Matches the existing design language (overline label + large heading).
+ */
+function CategoryHeading({ label, categoryKey, theme }) {
+  return (
+    <div className="flex items-center gap-4 mb-8 mt-2">
+      {/* Decorative left rule */}
+      <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+
+      <div className="text-center shrink-0">
+        <h3
+          className="font-heading text-2xl md:text-3xl font-black tracking-tight uppercase"
+          style={{ color: theme.textPrimary }}
+        >
+          {label}
+        </h3>
+        <Link
+          to={`/collections/${categoryKey}`}
+          className="inline-flex items-center gap-1.5 mt-1 text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
+          style={{ color: theme.primary }}
+        >
+          View all <i className="fa-solid fa-arrow-right text-[10px]" />
+        </Link>
+      </div>
+
+      {/* Decorative right rule */}
+      <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+    </div>
+  )
+}
+
+/**
+ * FeaturedProducts — driven entirely by FEATURED_CONFIG.
+ *
+ * Behaviour:
+ *  1. Fetches all products with variants from the API.
+ *  2. Passes them through groupFeaturedProducts() which applies the config:
+ *     - selects only the configured categories
+ *     - caps each category at perCategory products
+ *     - preserves the category order (no interleaving)
+ *  3. Renders each category group under its own heading, in order.
+ *
+ * To change which categories/counts appear, edit src/config/featuredConfig.js.
+ */
 function FeaturedProducts({ theme }) {
-  const [products, setProducts] = useState([])
+  const [groups, setGroups]   = useState([])   // [{ category, label, products }]
   const [loading, setLoading] = useState(true)
+  const totalSkeletons = FEATURED_CONFIG.totalProducts
 
   useEffect(() => {
     fetchProductsWithVariants()
-      .then((raw) => setProducts(normalizeProducts(raw).slice(0, 6)))
-      .catch(() => setProducts([]))
+      .then((raw) => {
+        const normalized = normalizeProducts(raw)
+        setGroups(groupFeaturedProducts(normalized, FEATURED_CONFIG))
+      })
+      .catch(() => setGroups([]))
       .finally(() => setLoading(false))
   }, [])
 
   return (
     <section className="max-w-7xl mx-auto pb-24 px-6">
-      <p className="text-xs font-semibold tracking-[0.4em] uppercase text-center mb-3" style={{ color: theme.primary }}>Collection</p>
-      <h2 className="font-heading text-5xl font-bold text-center mb-12" style={{ color: theme.textPrimary }}>Featured Drops</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
-          : products.map((p) => <ProductCard key={p.id} product={p} />)
-        }
-      </div>
-      <div className="text-center mt-12">
-        <Link to="/collections"
+      {/* Section overline + main heading */}
+      <p
+        className="text-xs font-semibold tracking-[0.4em] uppercase text-center mb-3"
+        style={{ color: theme.primary }}
+      >
+        Collection
+      </p>
+      <h2
+        className="font-heading text-5xl font-bold text-center mb-14"
+        style={{ color: theme.textPrimary }}
+      >
+        Featured Drops
+      </h2>
+
+      {loading ? (
+        /* Loading state — flat skeleton grid, no category headings yet */
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
+          {Array.from({ length: totalSkeletons }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        /* Grouped product display — one section per category, in config order */
+        <div className="space-y-14">
+          {groups.map(({ category, label, products }) => (
+            <div key={category}>
+              <CategoryHeading label={label} categoryKey={category} theme={theme} />
+              {/* flex-wrap + justify-center: cards center when the row isn't full */}
+              <div className="flex flex-wrap justify-center gap-5 sm:gap-7">
+                {products.map((p) => (
+                  <div
+                    key={p.id}
+                    className="w-[calc(50%-10px)] sm:w-[calc(50%-14px)] lg:w-[calc(33.333%-20px)]"
+                  >
+                    <ProductCard product={p} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CTA — view all products */}
+      <div className="text-center mt-14">
+        <Link
+          to="/collections"
           className="inline-flex items-center gap-2 px-10 py-3 rounded-xl text-sm font-semibold border transition-all hover:scale-105"
           style={{ borderColor: theme.primary, color: theme.primary }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.primary; e.currentTarget.style.color = '#fff' }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.primary }}>
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = theme.primary
+            e.currentTarget.style.color = '#fff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = theme.primary
+          }}
+        >
           View All Products <i className="fa-solid fa-arrow-right" />
         </Link>
       </div>
