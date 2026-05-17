@@ -30,30 +30,77 @@
                     <p class="text-gray-400 uppercase tracking-widest mt-1">{{ product.category }}</p>
                 </div>
             </div>
-            <span class="mb-2 px-3 py-1 rounded-full text-sm bg-purple-600/20 border border-purple-500/30 text-purple-200">
+            <span class="mb-2 px-3 py-1 rounded-full text-sm
+    {% if is_out_of_stock %}
+        bg-red-600/20 border border-red-500/30 text-red-300
+    {% else %}
+        bg-purple-600/20 border border-purple-500/30 text-purple-200
+    {% endif %}">
+
+                {% if is_out_of_stock %}
+                Out of Stock
+                {% else %}
                 In-store
+                {% endif %}
             </span>
 
-            <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through">
-                ₹<span id="oldPrice"></span>
-            <p class="text-purple-400"><i class="fa-solid fa-tag"></i> 26% OFF!</p>
-            </p>
+            <!-- <p class="text-gray-400/80 text-2xl font-semibold mt-4 line-through"> -->
+            <!-- ₹<span id="oldPrice"></span> -->
+            <!-- <p class="text-purple-400"><i class="fa-solid fa-tag"></i> 26% OFF!</p> -->
+            <!-- </p> -->
 
             <p class="text-3xl font-semibold mt-4 text-purple-300">
                 ₹<span id="newPrice">{{ product.price }}</span>
             </p>
 
-            <p class="mt-2 inline-block px-3 py-1 text-xs sm:text-sm
-            max-w-full break-words text-center
-            bg-teal-500/20 border border-teal-500/30
-            rounded-full text-teal-300">
-
-                🎉 NEW YEAR OFFER: 26% OFF — Valid till Jan 31
-            </p>
+            {% if not product.is_active %}
+            <div class="mt-4 p-3 rounded-xl bg-red-600/10 border border-red-500/20 text-red-300 text-sm">
+                This product is currently unavailable.
+            </div>
+            {% endif %}
 
             {% if product.description %}
-            <pre class="mt-4 text-gray-300 leading-normal text-wrap font-[Poppins]">{{ product.description }}</pre>
+            {% set raw = product.description %}
+            {% set upper = raw.upper() %}
+
+            {% set desc_start = upper.find('DESCRIPTION') %}
+            {% set feat_start = upper.find('FEATURES') %}
+            {% set care_start = upper.find('CARE') %}
+
+            {% set desc_text = raw[
+            desc_start + 11 :
+            feat_start if feat_start != -1 else
+            care_start if care_start != -1 else
+            None
+            ].strip() if desc_start != -1 else '' %}
+
+            {% set feat_text = raw[
+            feat_start + 8 :
+            care_start if care_start != -1 else None
+            ].strip() if feat_start != -1 else '' %}
+
+            {% set care_text = raw[
+            care_start + 4 :
+            ].strip() if care_start != -1 else '' %}
+
+            {% if desc_text %}
+            <details open class="mt-6 group bg-black/05 border border-white/10 rounded-2xl">
+                <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                    <span class="text-lg font-semibold">Description</span>
+                    <span class="text-purple-400 group-open:rotate-180 transition"><i
+                            class="fa-solid fa-angle-down"></i></span>
+                </summary>
+                <div class="px-5 pb-4 border-t border-white/10 text-gray-300
+            whitespace-pre-line break-words leading-relaxed text-sm sm:text-base">
+
+                    {{ desc_text }}
+                </div>
+            </details>
             {% endif %}
+            {% endif %}
+
+
+
 
             <!-- COLOR SELECTOR -->
             <div class="mt-6">
@@ -110,19 +157,139 @@
 
             <p id="actionMessage" class="text-lg text-purple-400 mt-2"></p>
 
+            <!-- COUPON INPUT -->
+            {% if product.is_active %}
+            <div class="mt-4 mb-6">
+                <label class="block text-sm text-gray-400 mb-2">Have a coupon?</label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input id="couponInput" type="text" placeholder="Enter coupon code" class="w-full sm:flex-1 px-4 py-3 bg-black/40 border border-white/10
+                  rounded-xl focus:outline-none focus:border-purple-500 uppercase" />
+
+                    <button onclick="applyBuyNowCoupon()"
+                        class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600 px-6 py-3 rounded-lg font-medium transition">
+
+                        Apply
+                    </button>
+                </div>
+
+            </div>
+            {% endif %}
+
+
             <!-- BUTTONS -->
             <div class="flex flex-col sm:flex-row gap-4 mt-8">
-                <button id="addToCartBtn" onclick="addToCart()"
-                    class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+
+                {% if product.is_active %}
+                <button id="addToCartBtn" onclick="addToCart()" class="flex-1 border border-purple-500 hover:bg-white/80 hover:text-purple-900
+           px-6 py-3 rounded-lg font-semibold transition">
                     ADD TO CART
                 </button>
 
                 <button id="buyNowBtn"
                     onclick="buyNow('{{ product.id }}', selectedVariant?.variant_id, parseInt(quantityInput.value || 1))"
-                    class="flex-1 bg-purple-600 hover:bg-purple-800 active:bg-purple-900 px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="flex-1 bg-purple-600 hover:bg-purple-800 px-6 py-3 rounded-lg font-semibold transition">
                     BUY NOW
                 </button>
+                {% else %}
+                <button disabled class="flex-1 bg-gray-700 text-gray-400 px-6 py-3 rounded-lg cursor-not-allowed">
+                    UNAVAILABLE
+                </button>
+                {% endif %}
+
             </div>
+
+            <!-- OFFER MODAL -->
+            <!-- BOGO MODAL -->
+            <div id="bogoModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+
+                <div class="bg-black border border-white/10 rounded-2xl p-6 w-full max-w-lg">
+
+                    <h2 class="text-xl font-semibold mb-4">
+                        Choose your FREE Hoodie 🎁
+                    </h2>
+
+                    <div id="bogoProducts" class="space-y-3 max-h-80 overflow-y-auto"></div>
+                    <!-- FREE VARIANT SELECTORS -->
+                    <div id="bogoVariantSection" class="hidden mt-4">
+
+                        <p class="text-sm text-gray-400">Color</p>
+                        <div id="bogoColors" class="flex flex-wrap gap-2 mt-2"></div>
+
+                        <p class="text-sm text-gray-400 mt-4">Size</p>
+                        <div id="bogoSizes" class="flex flex-wrap gap-2 mt-2"></div>
+
+                    </div>
+
+
+                    <div class="flex justify-end mt-4 gap-3">
+                        <button onclick="closeBogoModal()" class="px-4 py-2 border border-white/10 rounded-xl">
+                            Cancel
+                        </button>
+
+                        <button onclick="confirmBogo()" class="px-4 py-2 bg-purple-600 rounded-xl">
+                            Confirm
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+
+
+            <!-- ADD TO CART FEEDBACK STRIP -->
+            <div id="cartFeedback" class="hidden mt-4 flex flex-col sm:flex-row
+            sm:items-center sm:justify-between gap-3
+            bg-green-500/10 border border-green-500/30
+            text-green-300 px-4 py-3 rounded-xl text-sm">
+
+
+                <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Added to cart
+                </span>
+
+                <div class="flex items-center gap-3">
+                    <a href="/cart-page"
+                        class="text-purple-400 hover:text-purple-200 hover:bg-purple-400/40 px-3 py-1 rounded-lg hover:border hover:border-purple-400 font-semibold">
+                        View Cart →
+                    </a>
+
+                    <button onclick="hideCartFeedback()" class="text-gray-400 hover:text-white">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+
+                {% if feat_text %}
+                <details class="group bg-black/40 border border-white/10 rounded-2xl">
+                    <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                        <span class="text-lg font-semibold">Features</span>
+                        <span class="text-purple-400 group-open:rotate-180 transition"><i
+                                class="fa-solid fa-angle-down"></i></span>
+                    </summary>
+                    <div class="px-5 pb-4 border-t border-white/10 text-gray-300 whitespace-pre-line">
+                        {{ feat_text }}
+                    </div>
+                </details>
+                {% endif %}
+
+                {% if care_text %}
+                <details class="group bg-black/40 border border-white/10 rounded-2xl">
+                    <summary class="cursor-pointer px-5 py-4 flex justify-between items-center">
+                        <span class="text-lg font-semibold">Care & Instructions</span>
+                        <span class="text-purple-400 group-open:rotate-180 transition"><i
+                                class="fa-solid fa-angle-down"></i></span>
+                    </summary>
+                    <div class="px-5 pb-4 border-t border-white/10 text-gray-300 whitespace-pre-line">
+                        {{ care_text }}
+                    </div>
+                </details>
+                {% endif %}
+
+            </div>
+
 
             <!-- SIZE CHART -->
             <details class="mt-8 bg-purple-600/20 border border-white/10 rounded-xl overflow-hidden">
@@ -217,10 +384,6 @@
             <div class="p-4">
                 <h3 class="text-lg font-semibold">{{ item.name }}</h3>
                 <p class="text-gray-400">{{ item.category or 'Clothing' }}</p>
-                <p class="text-gray-400 line-through text-sm">
-                    ₹{{ (item.price | float * 1.35) | round(0) }}
-                </p>
-
                 <p class="text-purple-400 font-bold">
                     ₹{{ item.price }}
                 </p>
@@ -237,45 +400,23 @@
 
 <!-- JS -->
 <script>
+    const PRODUCT_ACTIVE = {{ 'true' if product.is_active else 'false' }};
     let discountPercentage = 0.26;
     let basePrice = parseFloat('{{ product.price }}');
     let newPrice = basePrice
-    const oldPrice = Math.round(newPrice / (1 - discountPercentage));
-    document.getElementById("oldPrice").innerText = oldPrice;
+    // const oldPrice = Math.round(newPrice / (1 - discountPercentage));
+    // document.getElementById("oldPrice").innerText = oldPrice;
 
+    let selectedColor = null;
+    let selectedSize = null;
+    let selectedVariant = null;
 
-
-    // async function applyFirstOrderDiscount() {
-    //     const token = localStorage.getItem("access_token");
-
-    //     const firstOrderBadge = document.getElementById("firstOrderBadge");
-    //     const loginDiscountBadge = document.getElementById("loginDiscountBadge");
-
-    //     // 🟡 USER NOT LOGGED IN
-    //     if (!token) {
-    //         if (loginDiscountBadge) loginDiscountBadge.classList.remove("hidden");
-    //         return;
-    //     }
-
-    //     // 🟢 USER LOGGED IN → check first order
-    //     const res = await fetch("/user/first-order", {
-    //         headers: { "Authorization": "Bearer " + token }
-    //     });
-
-    //     const data = await res.json();
-    //     console.log("First order data:", data);
-
-    //     if (data.is_first_order) {
-    //         // Apply extra 10% discount
-    //         newPrice = Math.round(newPrice * 0.9);
-    //         basePrice = newPrice;
-    //         document.getElementById("newPrice").innerText = newPrice;
-
-    //         // Show first-order badge
-    //         if (firstOrderBadge) firstOrderBadge.classList.remove("hidden");
-    //     }
-    // }
-
+    const statusEl = document.getElementById("variantStatus");
+    const priceEl = document.getElementById("variantPrice");
+    const qtyInput = document.getElementById("quantityInput");
+    const actionMessage = document.getElementById("actionMessage");
+    const addBtn = document.getElementById("addToCartBtn");
+    const buyBtn = document.getElementById("buyNowBtn");
 
     // Canonical size order (extend anytime)
     const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
@@ -287,23 +428,517 @@
         );
     }
 
-
-
     const COLOR_DATA = JSON.parse('{{ color_data | tojson | safe }}') || {};
-
-
-    let selectedColor = null;
-    let selectedSize = null;
-    let selectedVariant = null;
-
     console.log("Variant Data:", COLOR_DATA);
 
-    const statusEl = document.getElementById("variantStatus");
-    const priceEl = document.getElementById("variantPrice");
-    const qtyInput = document.getElementById("quantityInput");
-    const actionMessage = document.getElementById("actionMessage");
-    const addBtn = document.getElementById("addToCartBtn");
-    const buyBtn = document.getElementById("buyNowBtn");
+    function selectColor(color) {
+        selectedColor = color;
+
+        document.querySelectorAll("[id^='color-']")
+            .forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+
+        const btn = document.getElementById("color-" + color);
+        if (btn) {
+            btn.classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+        }
+
+        renderImagesForColor(color);
+        renderSizesForColor(color);
+        updateVariantState();
+        resetBuyNowCoupon();
+
+    }
+
+    function renderImagesForColor(color) {
+        const data = COLOR_DATA[color];
+        if (!data || !data.images.length) {
+            document.getElementById("mainImage").src = "/static/img/placeholder.webp";
+            document.getElementById("thumbnailStrip").innerHTML = "";
+            return;
+        }
+
+        const primary =
+            data.images.find(i => i.role === "primary") || data.images[0];
+
+        document.getElementById("mainImage").src = primary.image_url;
+
+        document.getElementById("thumbnailStrip").innerHTML =
+            data.images.map(img => `
+            <img src="${img.image_url}"
+                 onclick="document.getElementById('mainImage').src='${img.image_url}'"
+                 class="w-20 h-20 object-cover bg-white rounded-md cursor-pointer border border-white/10 hover:border-purple-500 transition">
+        `).join("");
+    }
+
+    function renderSizesForColor(color) {
+        const sizeContainer = document.getElementById("sizeOptions");
+        sizeContainer.innerHTML = "";
+
+        const colorBlock = COLOR_DATA[color];
+        if (!colorBlock || !Array.isArray(colorBlock.sizes)) {
+            sizeContainer.innerHTML = `<span class="text-gray-400 text-sm">No sizes available</span>`;
+            return;
+        }
+
+        // Extract available sizes from variants
+        const availableSizes = colorBlock.sizes.map(v => v.size);
+
+        // Sort sizes logically (S, M, L, XL...)
+        const sortedSizes = sortSizesAsc([...new Set(availableSizes)]);
+
+        sortedSizes.forEach(size => {
+            const btn = document.createElement("button");
+            btn.id = `size-${size}`;
+            btn.innerText = size;
+            btn.onclick = () => selectSize(size);
+            console.log("Stock of size", size, ":", colorBlock.sizes.find(v => v.size === size)?.stock);
+
+            if (colorBlock.sizes.find(v => v.size === size)?.stock == 0)
+                btn.className =
+                    "cursor-not-allowed px-4 py-2 border border-white/10 rounded-xl bg-neutral-800/30 text-neutral-600";
+            else
+                btn.className =
+                    "px-4 py-2 border border-white/10 rounded-xl bg-black/40 hover:border-purple-500 transition";
+
+            sizeContainer.appendChild(btn);
+        });
+
+        // Reset selected size when color changes
+        selectedSize = null;
+    }
+
+
+    // Select size
+    function selectSize(size) {
+        if (selectedSize == size) {
+            selectedSize = null;
+            document.getElementById("size-" + size).classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
+        else {
+            selectedSize = size;
+            document.querySelectorAll("[id^='size-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
+            document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
+            updateVariantState();
+        }
+        resetBuyNowCoupon();
+
+    }
+
+    function findVariant() {
+        if (!selectedColor || !selectedSize) return null;
+
+        const colorBlock = COLOR_DATA[selectedColor];
+        if (!colorBlock) return null;
+
+        return colorBlock.sizes.find(
+            v => v.size === selectedSize
+        ) || null;
+    }
+
+
+    function updateVariantState() {
+        selectedVariant = findVariant();
+        actionMessage.innerText = "";
+
+        if (!selectedVariant) {
+            if (selectedColor == null || selectedSize == null) {
+                statusEl.innerText = "Select a color and size";
+                statusEl.classList.remove("text-green-300", "text-red-300");
+                statusEl.classList.add("text-gray-300");
+                priceEl.innerText = "";
+                addBtn.disabled = true;
+                buyBtn.disabled = true;
+                return;
+            }
+            else {
+                statusEl.innerText = "Variant not available";
+                statusEl.classList.remove("text-green-300");
+                statusEl.classList.add("text-red-300");
+                addBtn.disabled = true;
+                buyBtn.disabled = true;
+                return;
+            }
+        }
+
+        // --Note: This is still here for future use of price overrides
+        // const price = selectedVariant.price_override ?? basePrice;
+        // priceEl.innerText = `₹${price}`;
+
+        if (selectedVariant.stock <= 0) {
+            statusEl.innerText = "Variant is out of stock";
+            statusEl.classList.remove("text-green-300");
+            statusEl.classList.add("text-red-300");
+            addBtn.disabled = true;
+            buyBtn.disabled = true;
+        } else {
+            statusEl.innerText = `In stock: ${selectedVariant.stock}`;
+            statusEl.classList.remove("text-red-300");
+            statusEl.classList.add("text-green-300");
+            addBtn.disabled = false;
+            buyBtn.disabled = false;
+            clampQuantity(selectedVariant.stock);
+        }
+    }
+
+    function clampQuantity(maxQty) {
+        const current = parseInt(qtyInput.value || "1", 10);
+        if (current < 1) qtyInput.value = 1;
+        else if (maxQty && current > maxQty) qtyInput.value = maxQty;
+    }
+
+    function changeQty(delta) {
+        let current = parseInt(qtyInput.value || "1", 10);
+        current += delta;
+        if (current < 1) current = 1;
+        if (selectedVariant && selectedVariant.stock > 0) {
+            current = Math.min(current, selectedVariant.stock);
+        }
+        qtyInput.value = current;
+        resetBuyNowCoupon();
+    }
+
+
+    // CART AND BUY NOW FLOW
+
+    let selectedFreeProduct = null;
+    let selectedFreeVariant = null;
+    let freeVariantsData = [];
+    let selectedFreeColor = null;
+
+    function selectFreeProduct(id) {
+
+        selectedFreeProduct = id;
+        selectedFreeVariant = null;
+        selectedFreeColor = null;
+
+        fetch(`/products/${id}/variants`)
+            .then(r => r.json())
+            .then(data => {
+
+                // ONLY variants with stock > 0
+                freeVariantsData = data.filter(v => v.stock > 0);
+
+                const colors = [...new Set(freeVariantsData.map(v => v.color))];
+
+                document.getElementById("bogoVariantSection").classList.remove("hidden");
+
+                document.getElementById("bogoColors").innerHTML =
+                    colors.map(c => `
+                <button
+                    id="bogo-color-${c}"
+                    onclick="selectFreeColor('${c}')"
+                    class="px-3 py-1 border border-white/10 rounded-lg
+                           bg-black/40 hover:border-purple-500 transition">
+                    ${c}
+                </button>
+            `).join("");
+
+                document.getElementById("bogoSizes").innerHTML = "";
+            });
+    }
+
+
+
+    function selectFreeColor(color) {
+
+        selectedFreeColor = color;
+        selectedFreeVariant = null;
+
+        // highlight selected color
+        document.querySelectorAll("#bogoColors button").forEach(btn => {
+            btn.classList.remove("border-purple-500", "bg-purple-600/20");
+        });
+
+        const selectedBtn = document.getElementById(`bogo-color-${color}`);
+        if (selectedBtn) {
+            selectedBtn.classList.add("border-purple-500", "bg-purple-600/20");
+        }
+
+        const sizes = freeVariantsData.filter(v => v.color === color);
+
+        document.getElementById("bogoSizes").innerHTML =
+            sizes.map(s => `
+            <button
+                id="bogo-size-${s.id}"
+                onclick="selectFreeSize(${s.id})"
+                class="px-3 py-1 border border-white/10 rounded-lg
+                       bg-black/40 hover:border-purple-500 transition">
+                ${s.size}
+            </button>
+        `).join("");
+    }
+
+
+
+    function selectFreeSize(variantId) {
+
+        selectedFreeVariant = variantId;
+
+        // highlight selected size
+        document.querySelectorAll("#bogoSizes button").forEach(btn => {
+            btn.classList.remove("border-purple-500", "bg-purple-600/20");
+        });
+
+        const selectedBtn = document.getElementById(`bogo-size-${variantId}`);
+        if (selectedBtn) {
+            selectedBtn.classList.add("border-purple-500", "bg-purple-600/20");
+        }
+    }
+
+
+
+    function openBogoModal() {
+
+        document.getElementById("bogoModal").classList.remove("hidden");
+
+        fetch("/products")
+            .then(r => r.json())
+            .then(products => {
+
+                const container = document.getElementById("bogoProducts");
+
+                container.innerHTML = products.map(p => `
+        <div onclick="selectFreeProduct(${p.id})"
+             class="p-3 border border-white/10 rounded-xl cursor-pointer hover:border-purple-500">
+            ${p.name}
+        </div>
+      `).join("");
+
+            });
+    }
+
+    function closeBogoModal() {
+        document.getElementById("bogoModal").classList.add("hidden");
+    }
+
+    function confirmBogo() {
+
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIIPE.goProtected("/home");
+            return;
+        }
+        if (!selectedFreeProduct || !selectedFreeVariant) {
+            alert("Select free product color and size");
+            return;
+        }
+
+
+        fetch("/cart/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+
+                main_product: {
+                    product_id: {{ product.id }},
+            variant_id: selectedVariant?.variant_id,
+            quantity: parseInt(quantityInput.value || 1)
+                },
+    free_product: {
+        product_id: selectedFreeProduct,
+            variant_id: selectedFreeVariant
+    }
+            })
+        }).then(() => {
+        window.location.href = "/cart-page";
+    });
+
+}
+
+
+    async function addToCart() {
+        if (!PRODUCT_ACTIVE) return;
+
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIIPE.goProtected("/cart-page");
+            return;
+        }
+
+        const variant = findVariant();
+
+        if (!variant) {
+            SNIIPE.showError("Please select a color and size.", "actionMessage");
+            return;
+        }
+
+        if (variant.stock <= 0) {
+            SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
+            return;
+        }
+
+        const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
+
+        if (quantity <= 0) {
+            SNIIPE.showError("Quantity is invalid.", "actionMessage");
+            return;
+        }
+
+        if (quantity > variant.stock) {
+            SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
+            return;
+        }
+
+        // Show loading state
+        SNIIPE.showLoading(addBtn, "Adding...");
+        SNIIPE.showLoading(buyBtn, "Adding...");
+
+        try {
+            const res = await fetch("/cart/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    product_id: "{{ product.id }}",
+                    variant_id: variant.variant_id,
+                    quantity: quantity
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                // Handle error responses
+                if (res.status === 401) {
+                    SNIIPE.showError("Session expired. Please login again.", "actionMessage");
+                    setTimeout(() => {
+                        localStorage.removeItem("access_token");
+                        window.location.href = "/login-page";
+                    }, 2000);
+                } else if (res.status === 400) {
+                    SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
+                } else {
+                    SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
+                }
+                return;
+            }
+
+            // Success case
+            SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
+
+            // Update stock display
+            selectedVariant.stock -= quantity;
+            updateVariantState();
+            updateCartCount();
+            showCartFeedback();
+
+        } catch (error) {
+            console.error("Add to cart error:", error);
+            SNIIPE.showError("Network error. Please try again.", "actionMessage");
+        } finally {
+            SNIIPE.hideLoading(addBtn);
+            SNIIPE.hideLoading(buyBtn);
+        }
+    }
+
+    function showCartFeedback() {
+        const el = document.getElementById("cartFeedback");
+        if (!el) return;
+
+        el.classList.remove("hidden");
+
+        // auto-hide after 4s
+        setTimeout(() => {
+            el.classList.add("hidden");
+        }, 4000);
+    }
+
+    function hideCartFeedback() {
+        document.getElementById("cartFeedback")?.classList.add("hidden");
+    }
+
+
+    function buyNow(productId, variantId, quantity) {
+        if (!PRODUCT_ACTIVE) return;
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            SNIIPE.goProtected("/home");
+            return;
+        }
+        // openBogoModal();
+
+        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
+            if (!hasPhone) {
+                alert("Please add your phone number in your profile before proceeding.");
+                SNIIPE.goProtected("/profile");
+                return;
+            }
+            openAddressModal({
+                type: "buy_now",
+                payload: {
+                    product_id: productId,
+                    variant_id: variantId,
+                    quantity: quantity,
+                    coupon_code: window.appliedCoupon?.coupon_code || null
+                }
+            });
+        });
+    }
+
+
+    // COUPON FLOW
+
+    window.buyNowCoupon = null;
+
+    function applyBuyNowCoupon() {
+        const token = localStorage.getItem("access_token");
+        const code = document.getElementById("couponInput").value.trim();
+
+        if (!code) {
+            alert("Enter coupon code");
+            return;
+        }
+
+        if (!selectedVariant) {
+            alert("Select color & size first");
+            return;
+        }
+
+        const qty = parseInt(document.getElementById("quantityInput").value || 1);
+        if (qty < 1) {
+            alert("Invalid quantity");
+            return;
+        }
+
+        applyCoupon("buy_now", {
+            product_id: "{{ product.id }}",
+            variant_id: selectedVariant.variant_id,
+            quantity: qty
+        });
+    }
+
+    function confirmCoupon() {
+        document.getElementById("couponModal").classList.add("hidden");
+
+        if (window.appliedCoupon) {
+            document.getElementById("newPrice").innerText =
+                window.appliedCoupon.final_total;
+
+            // Lock input
+            document.getElementById("couponInput").disabled = true;
+            document.getElementById("couponInput").classList.add("opacity-60");
+        }
+    }
+
+    function resetBuyNowCoupon() {
+        window.appliedCoupon = null;
+        const input = document.getElementById("couponInput");
+        if (input) {
+            input.disabled = false;
+            input.value = "";
+            input.classList.remove("opacity-60");
+        }
+    }
+
+
+
+    // RAZORPAY PAYMENT FLOW
 
     async function payWithRazorpayBuyNow(orderId) {
         const token = localStorage.getItem("access_token");
@@ -377,273 +1012,11 @@
         }
     }
 
-
-    function selectColor(color) {
-        selectedColor = color;
-
-        document.querySelectorAll("[id^='color-']")
-            .forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
-
-        const btn = document.getElementById("color-" + color);
-        if (btn) {
-            btn.classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
-        }
-
-        renderImagesForColor(color);
-        renderSizesForColor(color);
-        updateVariantState();
-
-    }
-
-    function renderImagesForColor(color) {
-        const data = COLOR_DATA[color];
-        if (!data || !data.images.length) {
-            document.getElementById("mainImage").src = "/static/img/placeholder.webp";
-            document.getElementById("thumbnailStrip").innerHTML = "";
-            return;
-        }
-
-        const primary =
-            data.images.find(i => i.role === "primary") || data.images[0];
-
-        document.getElementById("mainImage").src = primary.image_url;
-
-        document.getElementById("thumbnailStrip").innerHTML =
-            data.images.map(img => `
-            <img src="${img.image_url}"
-                 onclick="document.getElementById('mainImage').src='${img.image_url}'"
-                 class="w-20 h-20 object-cover bg-white rounded-md cursor-pointer border border-white/10 hover:border-purple-500 transition">
-        `).join("");
-    }
-
-    function renderSizesForColor(color) {
-        const sizeContainer = document.getElementById("sizeOptions");
-        sizeContainer.innerHTML = "";
-
-        const colorBlock = COLOR_DATA[color];
-        if (!colorBlock || !Array.isArray(colorBlock.sizes)) {
-            sizeContainer.innerHTML = `<span class="text-gray-400 text-sm">No sizes available</span>`;
-            return;
-        }
-
-        // Extract available sizes from variants
-        const availableSizes = colorBlock.sizes.map(v => v.size);
-
-        // Sort sizes logically (S, M, L, XL...)
-        const sortedSizes = sortSizesAsc([...new Set(availableSizes)]);
-
-        sortedSizes.forEach(size => {
-            const btn = document.createElement("button");
-            btn.id = `size-${size}`;
-            btn.innerText = size;
-            btn.onclick = () => selectSize(size);
-
-            btn.className =
-                "px-4 py-2 border border-white/10 rounded-xl bg-black/40 hover:border-purple-500 transition";
-
-            sizeContainer.appendChild(btn);
-        });
-
-        // Reset selected size when color changes
-        selectedSize = null;
-    }
-
-
-    // Select size
-    function selectSize(size) {
-        if (selectedSize == size) {
-            selectedSize = null;
-            document.getElementById("size-" + size).classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40");
-            updateVariantState();
-        }
-        else {
-            selectedSize = size;
-            document.querySelectorAll("[id^='size-']").forEach(btn => btn.classList.remove("ring-2", "ring-purple-700", "bg-purple-500/40"));
-            document.getElementById("size-" + size).classList.add("ring-2", "ring-purple-700", "bg-purple-500/40");
-            updateVariantState();
-        }
-    }
-
-    function findVariant() {
-        if (!selectedColor || !selectedSize) return null;
-
-        const colorBlock = COLOR_DATA[selectedColor];
-        if (!colorBlock) return null;
-
-        return colorBlock.sizes.find(
-            v => v.size === selectedSize
-        ) || null;
-    }
-
-
-    function updateVariantState() {
-        selectedVariant = findVariant();
-        actionMessage.innerText = "";
-
-        if (!selectedVariant) {
-            if (selectedColor == null || selectedSize == null) {
-                statusEl.innerText = "Select a color and size";
-                statusEl.classList.remove("text-green-300", "text-red-300");
-                statusEl.classList.add("text-gray-300");
-                priceEl.innerText = "";
-                addBtn.disabled = true;
-                buyBtn.disabled = true;
-                return;
-            }
-            else {
-                statusEl.innerText = "Variant not available";
-                statusEl.classList.remove("text-green-300");
-                statusEl.classList.add("text-red-300");
-                addBtn.disabled = true;
-                buyBtn.disabled = true;
-                return;
-            }
-        }
-
-        // const price = selectedVariant.price_override ?? basePrice;
-        // priceEl.innerText = `₹${price}`;
-
-        if (selectedVariant.stock <= 0) {
-            statusEl.innerText = "Variant is out of stock";
-            statusEl.classList.remove("text-green-300");
-            statusEl.classList.add("text-red-300");
-            addBtn.disabled = true;
-            buyBtn.disabled = true;
-        } else {
-            statusEl.innerText = `In stock`;
-            statusEl.classList.remove("text-red-300");
-            statusEl.classList.add("text-green-300");
-            addBtn.disabled = false;
-            buyBtn.disabled = false;
-            clampQuantity(selectedVariant.stock);
-        }
-    }
-
-    function clampQuantity(maxQty) {
-        const current = parseInt(qtyInput.value || "1", 10);
-        if (current < 1) qtyInput.value = 1;
-        else if (maxQty && current > maxQty) qtyInput.value = maxQty;
-    }
-
-    function changeQty(delta) {
-        let current = parseInt(qtyInput.value || "1", 10);
-        current += delta;
-        if (current < 1) current = 1;
-        if (selectedVariant && selectedVariant.stock > 0) {
-            current = Math.min(current, selectedVariant.stock);
-        }
-        qtyInput.value = current;
-    }
-
-    async function addToCart() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            SNIIPE.goProtected("/cart-page");
-            return;
-        }
-
-        const variant = findVariant();
-
-        if (!variant) {
-            SNIIPE.showError("Please select a color and size.", "actionMessage");
-            return;
-        }
-
-        if (variant.stock <= 0) {
-            SNIIPE.showError("Selected variant is out of stock.", "actionMessage");
-            return;
-        }
-
-        const quantity = Math.max(1, parseInt(qtyInput.value || "1", 10));
-
-        if (quantity <= 0) {
-            SNIIPE.showError("Quantity is invalid.", "actionMessage");
-            return;
-        }
-
-        if (quantity > variant.stock) {
-            SNIIPE.showError(`Only ${variant.stock} items available in stock.`, "actionMessage");
-            return;
-        }
-
-        // Show loading state
-        SNIIPE.showLoading(addBtn, "Adding...");
-        SNIIPE.showLoading(buyBtn, "Adding...");
-
-        try {
-            const res = await fetch("/cart/add", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify({
-                    product_id: "{{ product.id }}",
-                    variant_id: variant.variant_id,
-                    quantity: quantity
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                // Handle error responses
-                if (res.status === 401) {
-                    SNIIPE.showError("Session expired. Please login again.", "actionMessage");
-                    setTimeout(() => {
-                        localStorage.removeItem("access_token");
-                        window.location.href = "/login-page";
-                    }, 2000);
-                } else if (res.status === 400) {
-                    SNIIPE.showError(data.error || "Invalid request.", "actionMessage");
-                } else {
-                    SNIIPE.showError(data.error || "Failed to add item to cart.", "actionMessage");
-                }
-                return;
-            }
-
-            // Success case
-            SNIIPE.showSuccess(data.message || `Added ${quantity} item(s) to cart.`, "actionMessage");
-
-            // Update stock display
-            selectedVariant.stock -= quantity;
-            updateVariantState();
-
-        } catch (error) {
-            console.error("Add to cart error:", error);
-            SNIIPE.showError("Network error. Please try again.", "actionMessage");
-        } finally {
-            SNIIPE.hideLoading(addBtn);
-            SNIIPE.hideLoading(buyBtn);
-        }
-    }
-
-    function buyNow(productId, variantId, quantity) {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            SNIIPE.goProtected("/home");
-            return;
-        }
-        const phoneCheck = SNIIPE.confirmPhone().then((hasPhone) => {
-            if (!hasPhone) {
-                alert("Please add your phone number in your profile before proceeding.");
-                SNIIPE.goProtected("/profile");
-                return;
-            }
-            openAddressModal({
-                type: "buy_now",
-                payload: { productId, variantId, quantity }
-            });
-        });
-        // openAddressModal({
-        //     type: "buy_now",
-        //     payload: { productId, variantId, quantity }
-        // });
-    }
-
     async function startBuyNowWithAddress(addressId, payload) {
         SNIIPE.showLoading(buyBtn, "Processing...");
         const token = localStorage.getItem("access_token");
+        console.log("payload:", payload);
+
 
         const res = await fetch("/checkout/razorpay/buy-now", {
             method: "POST",
@@ -652,16 +1025,21 @@
                 "Authorization": "Bearer " + token
             },
             body: JSON.stringify({
-                product_id: payload.productId,
-                variant_id: payload.variantId,
+                product_id: payload.product_id,
+                variant_id: payload.variant_id,
                 quantity: payload.quantity,
-                address_id: addressId
+                address_id: addressId,
+                coupon_code: payload.coupon_code
             })
         });
 
         const data = await res.json();
         if (!res.ok) {
             alert(data.error || "Checkout failed");
+            return;
+        }
+        if (data.payment_required === false) {
+            showOrderSuccessPopup(data.order_id);
             return;
         }
 

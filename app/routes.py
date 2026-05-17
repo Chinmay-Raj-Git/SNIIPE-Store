@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, abort, request, jsonify, render_template
 from .models import *
 from . import db
 from app import get_supabase
@@ -10,7 +10,7 @@ import razorpay
 from flask import current_app as app
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 
 bp = Blueprint("routes", __name__)
 
@@ -61,6 +61,81 @@ def get_user_friendly_status(status):
     }
     return mapping.get(status, "Processing")
 
+def calculate_cart_subtotal(user_id):
+    cart = Cart.query.filter_by(user_id=user_id).first()
+    if not cart or not cart.items:
+        return Decimal("0.00")
+
+    subtotal = Decimal("0.00")
+    for item in cart.items:
+        subtotal += Decimal(item.price_at_time) * item.quantity
+
+    return subtotal
+
+
+def calculate_buy_now_subtotal(product_id, variant_id, quantity):
+    product = Product.query.get(product_id)
+    if not product:
+        return None, "Product not found"
+
+    price = Decimal(product.price)
+
+    if variant_id:
+        variant = Product_Variants.query.get(variant_id)
+        if not variant:
+            return None, "Variant not found"
+        if variant.price_override is not None:
+            price = Decimal(variant.price_override)
+
+    subtotal = price * quantity
+    return subtotal, None
+
+def validate_and_apply_coupon(subtotal, coupon_code, user_id):
+    """
+    Returns: (discount_amount, final_amount, coupon_obj)
+    Raises: ValueError on invalid coupon
+    """
+
+    if not coupon_code:
+        return Decimal("0.00"), subtotal, None
+
+    coupon = Coupons.query.filter_by(code=coupon_code, is_active=True).first()
+    if not coupon:
+        raise ValueError("Invalid coupon")
+
+    if coupon.expires_at and coupon.expires_at < datetime.utcnow():
+        raise ValueError("Coupon expired")
+
+    already_used = CouponUsage.query.filter_by(
+        coupon_id=coupon.id,
+        user_id=user_id
+    ).first()
+
+    if already_used:
+        raise ValueError("Coupon already used")
+
+    if coupon.min_order_amount and subtotal < coupon.min_order_amount:
+        raise ValueError("Order amount too low for this coupon")
+
+    # Calculate discount
+    if coupon.type == "percentage":
+        discount = (subtotal * Decimal(coupon.value) / Decimal("100"))
+    elif coupon.type == "flat":
+        discount = Decimal(coupon.value)
+    else:
+        raise ValueError("Invalid coupon type")
+
+    if coupon.max_discount:
+        discount = min(discount, Decimal(coupon.max_discount))
+
+    discount = min(discount, subtotal)
+    final_total = subtotal - discount
+
+    return (
+        discount.quantize(Decimal("0.01")),
+        final_total.quantize(Decimal("0.01")),
+        coupon
+    )
 
 
 # ----------------------------------------------------------
@@ -73,25 +148,70 @@ def get_user_friendly_status(status):
 # -----------------------------
 @bp.route("/products", methods=["GET"])
 def get_products():
-    products = Product.query.all()
+    products = Product.query.filter_by(is_active=True).all()
+    # JOIN with variants and compute total stock per product
+    products_with_stock = (
+        db.session.query(
+            Product,
+            func.coalesce(func.sum(Product_Variants.stock), 0).label("total_stock")
+        )
+        .outerjoin(Product_Variants, Product.id == Product_Variants.product_id)
+        .filter(Product.is_active == True)
+        .group_by(Product.id)
+        .all()
+    )
 
     response = []
-    for p in products:
-        thumbnail = Product_Variant_Images.query.filter_by(
-            product_id=p.id,
-            role="thumbnail"
-        ).order_by(Product_Variant_Images.sort_order.asc()).first()
+
+    for product, total_stock in products_with_stock:
+
+        # thumbnail = Product_Variant_Images.query.filter_by(
+        #     product_id=product.id,
+        #     role="thumbnail"
+        # ).order_by(Product_Variant_Images.sort_order.asc()).first()
+        
+        images = Product_Variant_Images.query.filter_by(
+            product_id=product.id,
+        ).order_by(Product_Variant_Images.sort_order.asc()).all()
+        
+        thumbnail = next((img for img in images if img.role == "thumbnail"), None)
 
         response.append({
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "price": float(p.price),
-            "category": p.category,
-            "thumbnail": thumbnail.image_url if thumbnail else None
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": float(product.price),
+            "category": product.category,
+            "thumbnail": thumbnail.image_url if thumbnail else None,
+            "images": [
+                {   "image_url": img.image_url,
+                    "role": img.role,
+                    "aspect_ratio": img.aspect_ratio
+                } for img in images ],
+
+            # ⭐ new frontend flag
+            "is_out_of_stock": total_stock <= 0
         })
 
     return jsonify(response)
+    # for p in products:
+    #     thumbnail = Product_Variant_Images.query.filter_by(
+    #         product_id=p.id,
+    #         role="thumbnail"
+    #     ).order_by(Product_Variant_Images.sort_order.asc()).first()
+        
+        
+
+    #     response.append({
+    #         "id": p.id,
+    #         "name": p.name,
+    #         "description": p.description,
+    #         "price": float(p.price),
+    #         "category": p.category,
+    #         "thumbnail": thumbnail.image_url if thumbnail else None
+    #     })
+
+    # return jsonify(response)
 
 
 # -----------------------------
@@ -100,8 +220,14 @@ def get_products():
 @bp.route("/product/<int:product_id>")
 def product_page(product_id):
     product = Product.query.get_or_404(product_id)
+    if not product.is_active:
+        return 404
+
 
     variants = Product_Variants.query.filter_by(product_id=product_id).all()
+
+    total_stock = sum(v.stock for v in variants)
+    is_out_of_stock = total_stock <= 0  
 
     color_map = {}
 
@@ -116,7 +242,8 @@ def product_page(product_id):
                 "images": [
                     {
                         "image_url": img.image_url,
-                        "role": img.role
+                        "role": img.role,
+                        "aspect_ratio": img.aspect_ratio
                     }
                     for img in images
                 ],
@@ -159,7 +286,8 @@ def product_page(product_id):
         color_data=color_map,
         colors=colors,
         sizes=sizes,
-        similar_products=similar_products_data
+        similar_products=similar_products_data,
+        is_out_of_stock=is_out_of_stock
     )
 
 
@@ -183,7 +311,8 @@ def get_product_images(product_id):
             "color": img.color,
             "image_url": img.image_url,
             "role": img.role,
-            "sort_order": img.sort_order
+            "sort_order": img.sort_order,
+            "aspect_ratio": img.aspect_ratio
         } for img in images
     ])
     
@@ -610,12 +739,31 @@ def get_cart():
             "variant_size": item.variant.size if item.variant else None,
             "quantity": item.quantity,
             "price": item.price_at_time,
-            "subtotal": item.quantity * item.price_at_time
+            "subtotal": item.quantity * item.price_at_time,
+            "thumbnail": Product_Variant_Images.query.filter_by(product_id=item.product_id, role="thumbnail").order_by(Product_Variant_Images.sort_order.asc()).first().image_url,
+            "is_free_item": item.is_free_item
         }
         total += product_info["subtotal"]
         cart_items.append(product_info)
 
     return jsonify({"cart": cart_items, "total": total})
+
+# -----------------------------
+# ----GET: Cart item count
+# -----------------------------
+@bp.route("/cart/count", methods=["GET"])
+@require_auth
+def cart_count():
+    cart = Cart.query.filter_by(user_id=g.user.id).first()
+
+    if not cart or not cart.items:
+        return jsonify({ "count": 0 })
+
+    total_qty = sum(item.quantity for item in cart.items)
+
+    return jsonify({
+        "count": total_qty
+    })
 
 
 # -----------------------------
@@ -624,7 +772,82 @@ def get_cart():
 @bp.route("/cart/add", methods=["POST"])
 @require_auth
 def add_to_cart():
-    data = request.json
+    data = request.json or {}
+    print("BOGO DATA:", data)
+
+
+    # -----------------------------
+    # BOGO PAYLOAD
+    # -----------------------------
+    main_product = data.get("main_product")
+    free_product = data.get("free_product")
+
+    user_id = g.user.id
+
+    cart = Cart.query.filter_by(user_id=user_id).first()
+    if not cart:
+        cart = Cart(user_id=user_id)
+        db.session.add(cart)
+        db.session.commit()
+
+    # ======================================================
+    # ⭐ BOGO FLOW FIRST (IMPORTANT)
+    # ======================================================
+
+    if main_product and free_product:
+
+        main_product_id = main_product.get("product_id")
+        main_variant_id = main_product.get("variant_id")
+        main_quantity = main_product.get("quantity", 1)
+
+        free_product_id = free_product.get("product_id")
+        free_variant_id = free_product.get("variant_id")
+
+        if not main_product_id or not free_product_id:
+            return jsonify({"error": "Invalid BOGO payload"}), 400
+
+        main_prod = Product.query.get(main_product_id)
+        free_prod = Product.query.get(free_product_id)
+
+        if not main_prod or not free_prod:
+            return jsonify({"error": "Product not found"}), 404
+
+        main_price = Decimal(main_prod.price)
+
+        if main_variant_id:
+            variant = Product_Variants.query.get(main_variant_id)
+            if variant and variant.price_override:
+                main_price = Decimal(variant.price_override)
+
+        # ADD MAIN ITEM
+        main_item = CartItem(
+            cart_id=cart.id,
+            product_id=main_product_id,
+            variant_id=main_variant_id,
+            quantity=main_quantity,
+            price_at_time=main_price,
+            is_free_item=False
+        )
+
+        db.session.add(main_item)
+        db.session.flush()
+
+        # ADD FREE ITEM
+        free_item = CartItem(
+            cart_id=cart.id,
+            product_id=free_product_id,
+            variant_id=free_variant_id,
+            quantity=1,
+            price_at_time=Decimal("0.00"),
+            is_free_item=True,
+            parent_cart_item_id=main_item.id
+        )
+
+        db.session.add(free_item)
+        db.session.commit()
+
+        return jsonify({"message": "BOGO items added successfully"})
+
     product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = data.get("quantity", 1)
@@ -645,6 +868,9 @@ def add_to_cart():
     product = Product.query.get(product_id)
     if not product:
         return jsonify({"error": "Product not found"}), 404
+    if not product.is_active:
+        return jsonify({"error": "Product is no longer available"}), 400
+
 
     # Validate variant if provided
     variant = None
@@ -882,6 +1108,7 @@ def get_order_detail(order_id):
     return jsonify({
         "id": order.id,
         "created_at": order.created_at.isoformat(),
+        "payment_method": order.payment_method,
         "status": order.status,
         "status_label": get_user_friendly_status(order.status),
 
@@ -901,7 +1128,7 @@ def get_order_detail(order_id):
         },
 
         "items": items,
-        "total": float(order.total_amount)
+        "final_total": float(order.final_amount)
     })
 
 
@@ -922,6 +1149,9 @@ def whatsapp_buy_now():
         return jsonify({"error": "Invalid quantity"}), 400
 
     product = Product.query.get_or_404(product_id)
+    if not product.is_active:
+        return jsonify({"error": "Product is no longer available"}), 400
+
     variant = Product_Variants.query.get_or_404(variant_id)
 
     if variant.stock < quantity:
@@ -1101,24 +1331,45 @@ def create_razorpay_order():
         return jsonify({"error": "Invalid order state"}), 400
 
     client = get_razorpay_client()
+    
+    
+     # 🔹 Determine payable amount (single source of truth)
+    payable_amount = (
+        order.final_amount
+        if order.final_amount is not None
+        else order.total_amount
+    )
 
-    amount_paise = int(order.total_amount * 100)
+    # 🟢 CASE 1: ₹0 ORDER → NO RAZORPAY
+    if payable_amount == 0:
+        order.status = "paid"
+        order.payment_method = "coupon"
+        order.razorpay_order_id = None
+
+        db.session.commit()
+
+        return jsonify({
+            "payment_required": False,
+            "order_id": order.id
+        })
+        
+    amount_paise = int(payable_amount * 100)
 
     rzp_order = client.order.create({
-        "amount": amount_paise,
-        "currency": "INR",
-        "receipt": f"SN-{order.id}",
-        "payment_capture": 1
-    })
-
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": f"SN-{order.id}",
+            "payment_capture": 1
+        })
     order.razorpay_order_id = rzp_order["id"]
     db.session.commit()
 
     return jsonify({
+        "payment_required": True,
         "key": app.config["RAZORPAY_KEY_ID"],
         "amount": amount_paise,
         "currency": "INR",
-        "razorpay_order_id": rzp_order["id"],
+        "razorpay_order_id": rzp_order["id"] or 'coupon',
         "name": "SNIIPE",
         "description": f"Order SN-{order.id}"
     })
@@ -1189,6 +1440,7 @@ def verify_razorpay_payment():
 @require_auth
 def razorpay_buy_now():
     data = request.json
+    print(data)
     product_id = data.get("product_id")
     variant_id = data.get("variant_id")
     quantity = int(data.get("quantity", 1))
@@ -1196,6 +1448,9 @@ def razorpay_buy_now():
     address_id = data.get("address_id")
     if not address_id:
         return jsonify({"error": "ADDRESS_REQUIRED"}), 400
+    
+    coupon_code = data.get("coupon_code")
+    print("got code:", coupon_code)
 
     # 1. Fetch product & variant
     product = Product.query.get_or_404(product_id)
@@ -1224,12 +1479,25 @@ def razorpay_buy_now():
     price = variant.price_override or product.price
     subtotal = price * quantity
     
+    # 🔒 APPLY COUPON (shared logic)
+    try:
+        discount, final_amount, coupon = validate_and_apply_coupon(
+            subtotal,
+            coupon_code,
+            g.user.id
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
     cleanup_stale_pending_orders(g.user.id)
 
     # 4. Create ORDER (NO stock reduction)
     order = Order(
         user_id=g.user.id,
         total_amount=subtotal,
+        discount_amount=discount,
+        final_amount=final_amount,
+        coupon_code=coupon.code if coupon else None,
         status="pending_payment",
         payment_method="RAZORPAY",
 
@@ -1256,11 +1524,15 @@ def razorpay_buy_now():
     )
 
     db.session.add(order_item)
+    if coupon:
+        db.session.add(CouponUsage(
+            coupon_id=coupon.id,
+            user_id=g.user.id
+        ))
     db.session.commit()
 
     return jsonify({
-        "order_id": order.id,
-        "amount": subtotal
+        "order_id": order.id
     })
     
     
@@ -1276,6 +1548,7 @@ def razorpay_cart_checkout():
     if not cart_items:
         return jsonify({"error": "Cart is empty"}), 400
     
+    coupon_code = data.get("coupon_code")
     address_id = data.get("address_id")
     if not address_id:
         return jsonify({"error": "ADDRESS_REQUIRED"}), 400
@@ -1288,7 +1561,7 @@ def razorpay_cart_checkout():
     if not address:
         return jsonify({"error": "INVALID_ADDRESS"}), 400
 
-    total = 0
+    subtotal = Decimal("0.00")
 
     # Validate stock
     for item in cart_items:
@@ -1296,15 +1569,28 @@ def razorpay_cart_checkout():
             return jsonify({
                 "error": f"Insufficient stock for {item.product.name}"
             }), 400
-        price = item.variant.price_override or item.product.price
-        total += price * item.quantity
+        price = item.price_at_time
+        subtotal += price * item.quantity
 
     cleanup_stale_pending_orders(g.user.id)
+    
+    # Apply coupon safely
+    try:
+        discount, final_amount, coupon = validate_and_apply_coupon(
+            subtotal,
+            coupon_code,
+            g.user.id
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     # Create order
     order = Order(
         user_id=g.user.id,
-        total_amount=total,
+        total_amount=subtotal,
+        discount_amount=discount,
+        final_amount=final_amount,
+        coupon_code=coupon.code if coupon else None,
         status="pending_payment",
         payment_method="RAZORPAY",
 
@@ -1331,12 +1617,19 @@ def razorpay_cart_checkout():
             price_at_time=price,
             subtotal=price * item.quantity
         ))
-
+        
+    # Mark coupon as used (IMPORTANT)
+    if coupon:
+        db.session.add(CouponUsage(
+            coupon_id=coupon.id,
+            user_id=g.user.id
+        ))
+        
     db.session.commit()
 
     return jsonify({
         "order_id": order.id,
-        "amount": total
+        "amount": final_amount
     })
 
 
@@ -1407,6 +1700,101 @@ def create_shiprocket_shipment(order):
 # ----------------------------------------------------------
 
 
+# ----------------------------------------------------------
+# COUPONS SECTION
+# ----------------------------------------------------------
+
+# -----------------------------
+# ----POST: Applying Coupon
+# -----------------------------
+@bp.route("/coupons/apply", methods=["POST"])
+@require_auth
+def apply_coupon():
+    data = request.get_json() or {}
+
+    code = (data.get("code") or "").strip().upper()
+    context = data.get("context")  # "cart" or "buy_now"
+    if not code:
+        return jsonify({"error": "Coupon code required"}), 400
+
+    coupon = Coupons.query.filter_by(code=code, is_active=True).first()
+    if not coupon:
+        return jsonify({"error": "Invalid or inactive coupon"}), 400
+
+    # Expiry check
+    if coupon.expires_at and coupon.expires_at < datetime.utcnow():
+        return jsonify({"error": "Coupon has expired"}), 400
+
+    # One-time usage check
+    already_used = CouponUsage.query.filter_by(
+        coupon_id=coupon.id,
+        user_id=g.user.id
+    ).first()
+
+    if already_used:
+        return jsonify({"error": "You have already used this coupon"}), 400
+
+    # Calculate subtotal
+    if context == "cart":
+        subtotal = calculate_cart_subtotal(g.user.id)
+
+    elif context == "buy_now":
+        product_id = data.get("product_id")
+        variant_id = data.get("variant_id")
+        quantity = int(data.get("quantity", 1))
+
+        if not product_id or quantity < 1:
+            return jsonify({"error": "Invalid buy now request"}), 400
+
+        subtotal, err = calculate_buy_now_subtotal(
+            product_id, variant_id, quantity
+        )
+        if err:
+            return jsonify({"error": err}), 400
+    else:
+        return jsonify({"error": "Invalid context"}), 400
+
+    if subtotal <= 0:
+        return jsonify({"error": "Nothing to apply coupon on"}), 400
+
+    # Min order check
+    if coupon.min_order_amount and subtotal < coupon.min_order_amount:
+        return jsonify({
+            "error": f"Minimum order amount is ₹{coupon.min_order_amount}"
+        }), 400
+
+    # Calculate discount
+    discount_amount = Decimal("0.00")
+
+    if coupon.type == "percentage":
+        discount_amount = (subtotal * Decimal(coupon.value) / Decimal("100")).quantize(Decimal("0.01"))
+    elif coupon.type == "flat":
+        discount_amount = Decimal(coupon.value)
+    else:
+        return jsonify({"error": "Invalid coupon type"}), 400
+
+    # Max discount cap
+    if coupon.max_discount:
+        discount_amount = min(discount_amount, Decimal(coupon.max_discount))
+
+    # Never exceed subtotal
+    discount_amount = min(discount_amount, subtotal)
+
+    final_total = subtotal - discount_amount
+
+    return jsonify({
+        "coupon_code": coupon.code,
+        "discount_type": coupon.type,
+        "discount_value": str(coupon.value),
+        "original_total": str(subtotal),
+        "discount_amount": str(discount_amount),
+        "final_total": str(final_total)
+    })
+
+# ----------------------------------------------------------
+# --END OF COUPONS SECTION
+# ----------------------------------------------------------
+
 # Admin routes have been moved to app/admin/admin_routes.py
 
 
@@ -1417,117 +1805,117 @@ def create_shiprocket_shipment(order):
 def index():
     return render_template("landing.html")
 
-# -----------------------------
-# USER AUTH PAGE RENDERING
-# -----------------------------
-@bp.route("/auth-test")
-def auth_test_page():
-    return render_template("auth_test.html")
+# # -----------------------------
+# # USER AUTH PAGE RENDERING
+# # -----------------------------
+# @bp.route("/auth-test")
+# def auth_test_page():
+#     return render_template("auth_test.html")
 
-# -----------------------------
-# VERIFICATION PAGE RENDERING
-# -----------------------------
-@bp.route("/verify-email")
-def verify_email_page():
-    return render_template("verify_email.html")
+# # -----------------------------
+# # VERIFICATION PAGE RENDERING
+# # -----------------------------
+# @bp.route("/verify-email")
+# def verify_email_page():
+#     return render_template("verify_email.html")
 
-@bp.route("/email-verified")
-def email_verified_page():
-    return render_template("email_verified.html")
+# @bp.route("/email-verified")
+# def email_verified_page():
+#     return render_template("email_verified.html")
 
-# -----------------------------
-# HOME PAGE RENDERING
-# -----------------------------
-@bp.route("/home")
-def home():
-    return render_template("home.html")
+# # -----------------------------
+# # HOME PAGE RENDERING
+# # -----------------------------
+# @bp.route("/home")
+# def home():
+#     return render_template("home.html")
 
-# -----------------------------
-# PROFILE PAGE RENDERING
-# -----------------------------
-@bp.route("/profile")
-def profile():
-    return render_template("profile.html")
+# # -----------------------------
+# # PROFILE PAGE RENDERING
+# # -----------------------------
+# @bp.route("/profile")
+# def profile():
+#     return render_template("profile.html")
 
-# -----------------------------
-# ORDER PAGE RENDERING
-# -----------------------------
-@bp.route("/order/<int:order_id>")
-def order_detail_page(order_id):
-    return render_template("order_detail.html", order_id=order_id)
+# # -----------------------------
+# # ORDER PAGE RENDERING
+# # -----------------------------
+# @bp.route("/order/<int:order_id>")
+# def order_detail_page(order_id):
+#     return render_template("order_detail.html", order_id=order_id)
 
-# -----------------------------
-# CART PAGE RENDERING
-# -----------------------------
-@bp.route("/cart-page")
-def cart_page():
-    return render_template("cart.html")
+# # -----------------------------
+# # CART PAGE RENDERING
+# # -----------------------------
+# @bp.route("/cart-page")
+# def cart_page():
+#     return render_template("cart.html")
 
-# -----------------------------
-# LOGIN PAGE RENDERING
-# -----------------------------
-@bp.route('/login-page')
-def login_page():
-    return render_template('login.html')
+# # -----------------------------
+# # LOGIN PAGE RENDERING
+# # -----------------------------
+# @bp.route('/login-page')
+# def login_page():
+#     return render_template('login.html')
 
-@bp.route('/login-page/<string:targetLocation>')
-def login_page_target(targetLocation):
-    return render_template('login.html', targetLocation=targetLocation)
+# @bp.route('/login-page/<string:targetLocation>')
+# def login_page_target(targetLocation):
+#     return render_template('login.html', targetLocation=targetLocation)
 
-# -----------------------------
-# REGISTER PAGE RENDERING
-# -----------------------------
-@bp.route("/register-page")
-def register_page():
-    return render_template("register.html")
+# # -----------------------------
+# # REGISTER PAGE RENDERING
+# # -----------------------------
+# @bp.route("/register-page")
+# def register_page():
+#     return render_template("register.html")
 
-# -----------------------------
-# CONTACT PAGE RENDERING
-# -----------------------------
-@bp.route("/contact")
-def contact_page():
-    return render_template("contact.html")
+# # -----------------------------
+# # CONTACT PAGE RENDERING
+# # -----------------------------
+# @bp.route("/contact")
+# def contact_page():
+#     return render_template("contact.html")
 
-# -----------------------------
-# SUPPORT PAGE RENDERING
-# -----------------------------
-@bp.route("/support")
-def support_page():
-    return render_template("support.html")
+# # -----------------------------
+# # SUPPORT PAGE RENDERING
+# # -----------------------------
+# @bp.route("/support")
+# def support_page():
+#     return render_template("support.html")
 
-# -----------------------------
-# FAQs PAGE RENDERING
-# -----------------------------
-@bp.route("/faq")
-def faq_page():
-    return render_template("faq.html")
+# # -----------------------------
+# # FAQs PAGE RENDERING
+# # -----------------------------
+# @bp.route("/faq")
+# def faq_page():
+#     return render_template("faq.html")
 
-# -----------------------------
-# FAQs PAGE RENDERING
-# -----------------------------
-@bp.route("/forgot-password-page")
-def forgot_page():
-    return render_template("forgot_password.html")
+# # -----------------------------
+# # FAQs PAGE RENDERING
+# # -----------------------------
+# @bp.route("/forgot-password-page")
+# def forgot_page():
+#     return render_template("forgot_password.html")
 
-# -----------------------------
-# POLICIES
-# -----------------------------
-@bp.route("/terms")
-def terms():
-    return render_template("policies/terms.html")
+# # -----------------------------
+# # POLICIES
+# # -----------------------------
+# @bp.route("/terms")
+# def terms():
+#     return render_template("policies/terms.html")
 
-@bp.route("/privacy")
-def privacy():
-    return render_template("policies/privacy.html")
+# @bp.route("/privacy")
+# def privacy():
+#     return render_template("policies/privacy.html")
 
-@bp.route("/refund")
-def refund():
-    return render_template("policies/refund.html")
+# @bp.route("/refund")
+# def refund():
+#     return render_template("policies/refund.html")
 
-@bp.route("/shipping")
-def shipping():
-    return render_template("policies/shipping.html")
+# @bp.route("/shipping")
+# def shipping():
+#     return render_template("policies/shipping.html")
 
-@bp.route("/cancellations")
-def cancellations():
-    return render_template("policies/cancellations.html")
+# @bp.route("/cancellations")
+# def cancellations():
+#     return render_template("policies/cancellations.html")

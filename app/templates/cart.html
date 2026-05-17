@@ -49,8 +49,25 @@
                     </div>
                 </div>
 
+                <!-- COUPON INPUT -->
+                <div class="mb-6">
+                    <label class="block text-sm text-gray-400 mb-2">Have a coupon?</label>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input id="couponInput" type="text" placeholder="Enter coupon code" class="w-full sm:flex-1 px-4 py-3 bg-black/40 border border-white/10
+                    rounded-xl focus:outline-none focus:border-purple-500 uppercase" />
+
+                        <button onclick="applyCoupon('cart')" class="w-full sm:w-auto px-6 py-3 border border-purple-500 hover:bg-white/80 hover:text-purple-900 active:bg-purple-900 focus:ring-2 focus:ring-purple-600
+                     rounded-xl font-semibold transition">
+                            Apply
+                        </button>
+                    </div>
+                </div>
+
+
+
                 <button id="place-order-btn"
-                    class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20 mb-4">
+                    class="w-full  bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl font-semibold transition shadow-lg shadow-purple-500/20 mb-4">
                     Place Order
                 </button>
 
@@ -110,11 +127,12 @@
             container.innerHTML = cartData.cart.map(item => `
             <div class="bg-black/50 border border-white/10 backdrop-blur-xl p-6 rounded-2xl mb-4 hover:border-purple-500/30 transition">
                 <div class="flex flex-col sm:flex-row gap-6">
-                    <img src="${item.image_url || '/static/img/placeholder.webp'}"
+                    <img src="${item.thumbnail || '/static/img/placeholder.webp'}"
                          alt="${item.product_name}"
                          class="w-full sm:w-32 h-32 object-cover rounded-xl">
 
                     <div class="flex-1">
+                        ${item.is_free_item ? '<span class="text-green-400">FREE 🎁</span>' : ''}
                         <h2 class="text-xl font-semibold mb-2">${item.product_name}</h2>
                         <div class="flex flex-wrap gap-4 text-sm text-gray-400 mb-4">
                             ${item.variant_color ? `<span>Color: <span class="text-white">${item.variant_color}</span></span>` : ''}
@@ -281,10 +299,14 @@
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
             },
-            body: JSON.stringify({ address_id: addressId })
+            body: JSON.stringify({
+                address_id: addressId,
+                coupon_code: window.appliedCoupon?.coupon_code || null
+            })
         });
 
         const data = await res.json();
+        console.log(data)
         if (!res.ok) {
             alert(data.error || "Checkout failed");
             return;

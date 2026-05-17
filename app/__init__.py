@@ -28,7 +28,20 @@ def create_app():
     app.config["SMTP_PASSWORD"] = os.getenv("SMTP_PASSWORD")
     app.config["ADMIN_NOTIFICATION_EMAIL"] = os.getenv("ADMIN_NOTIFICATION_EMAIL")
 
+    from flask_cors import CORS
 
+    CORS(
+        app,
+        resources={r"/*": {"origins": [
+            "https://sniipe.in",
+            "https://www.sniipe.in",
+            "https://sniipe-store.vercel.app",
+            "http://localhost:5173"
+        ]}},
+        supports_credentials=True,
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"]
+    )
 
     db.init_app(app)
     migrate.init_app(app, db)
